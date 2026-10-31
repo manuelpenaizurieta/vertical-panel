@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Panel Comercial · Vertical Investment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+<style>
+/* Banda de mando azul noche con acento oro (la marca), lienzo claro con tarjetas blancas; color semántico para los estados. */
+:root{
+  --navy-1:#0A1A33; --navy-2:#13305E; --navy-ink:#E9EEF7; --navy-mute:#9DB0CF;
+  --bg:#F2F5FA; --surface:#FFFFFF; --surface-2:#F6F8FC; --line:#E3E8F1; --line-2:#CBD4E2;
+  --fg:#0E1A2B; --fg-2:#34425A; --fg-3:#5B6880;
+  --gold:#C49A3F; --gold-soft:#FBF3E2; --gold-ink:#8A6620;
+  --teal:#1595A3; --teal-soft:#E2F5F7; --indigo:#4E5BD6; --indigo-soft:#ECEEFD; --coral:#E06C4F; --coral-soft:#FDEDE8; --violet:#8A55C8; --violet-soft:#F3ECFC;
+  --ok:#18935D; --ok-soft:#E3F6EC; --warn:#C27C0E; --warn-soft:#FDF2DC; --bad:#D23F3F; --bad-soft:#FCE7E7; --off:#6B7A90; --off-soft:#EDF0F5;
+  --grid:#E8EDF4; --halo:#FFFFFF;
+  --shadow:0 1px 2px rgba(14,26,43,.05),0 8px 24px rgba(14,26,43,.06);
+  --f:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --m:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  --r:16px; --r-sm:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A101C; --surface:#111A2B; --surface-2:#162136; --line:#1F2C44; --line-2:#2C3C5A;
+  --fg:#E7ECF5; --fg-2:#B5C1D6; --fg-3:#7C8BA5;
+  --gold:#E2B862; --gold-soft:#2A2214; --gold-ink:#F0CF8C;
+  --teal:#3CC3D1; --teal-soft:#0F2A30; --indigo:#8C96F2; --indigo-soft:#1A1F3D; --coral:#F08A70; --coral-soft:#33191A; --violet:#B88BEA; --violet-soft:#241A35;
+  --ok:#3FCB8A; --ok-soft:#10291E; --warn:#EAB04A; --warn-soft:#2D2312; --bad:#F26C6C; --bad-soft:#331718; --off:#8A98AF; --off-soft:#1B2538;
+  --grid:#1C2740; --halo:#111A2B; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A101C; --surface:#111A2B; --surface-2:#162136; --line:#1F2C44; --line-2:#2C3C5A;
+  --fg:#E7ECF5; --fg-2:#B5C1D6; --fg-3:#7C8BA5;
+  --gold:#E2B862; --gold-soft:#2A2214; --gold-ink:#F0CF8C;
+  --teal:#3CC3D1; --teal-soft:#0F2A30; --indigo:#8C96F2; --indigo-soft:#1A1F3D; --coral:#F08A70; --coral-soft:#33191A; --violet:#B88BEA; --violet-soft:#241A35;
+  --ok:#3FCB8A; --ok-soft:#10291E; --warn:#EAB04A; --warn-soft:#2D2312; --bad:#F26C6C; --bad-soft:#331718; --off:#8A98AF; --off-soft:#1B2538;
+  --grid:#1C2740; --halo:#111A2B; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.3); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1440px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* ---------- Acceso ---------- */
+.gate{min-height:100vh;display:grid;place-items:center;background:radial-gradient(1200px 600px at 20% -10%,#1E4A8C55,transparent),linear-gradient(160deg,var(--navy-1),var(--navy-2));padding:24px}
+/* Pantalla de carga: evita que asome el acceso mientras se descifran los datos de una sesión guardada */
+.boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(1200px 600px at 20% -10%,#1E4A8C55,transparent),linear-gradient(160deg,var(--navy-1),var(--navy-2));color:var(--navy-mute);font-size:13px}
+.boot .spin{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);border-top-color:var(--gold)}
+@media (prefers-reduced-motion:no-preference){.boot .spin{animation:spin .8s linear infinite}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gate-card{width:min(420px,100%);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:30px;color:var(--navy-ink);backdrop-filter:blur(8px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.gate h1{margin:14px 0 4px;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.gate p{margin:0 0 20px;color:var(--navy-mute)}
+.gate label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.gate input[type=password],.gate input[type=text]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(10,26,51,.55);color:#fff;font-size:15px}
+.gate .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.gate .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--navy-mute)}
+.gate button{border:0;border-radius:12px;padding:11px 18px;font-weight:700;background:var(--gold);color:#1B1408;cursor:pointer}
+.gate .err{margin-top:12px;color:#FFB4A8;font-size:13px;min-height:1.2em}
+.logo{display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;border-radius:11px;background:linear-gradient(145deg,#1B3A6E,#0B1B36);border:1px solid rgba(255,255,255,.14);position:relative;flex:none}
+.mark::before{content:"";position:absolute;left:11px;bottom:9px;width:7px;height:22px;border-radius:2px;background:var(--gold)}
+.mark::after{content:"";position:absolute;left:21px;bottom:9px;width:7px;height:14px;border-radius:2px;background:#E9EEF7;opacity:.9}
+.logo small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--navy-mute);font-weight:600}
+.logo b{font-size:16px;font-weight:700;color:#fff}
+
+/* ---------- Cabecera ---------- */
+.hero{background:radial-gradient(900px 400px at 85% -40%,#2A5AA855,transparent),linear-gradient(135deg,var(--navy-1),var(--navy-2));color:var(--navy-ink);padding-block:14px 46px}
+.hero-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+/* Título y periodos en una sola franja: así las pestañas, su estado y sus cifras se ven nada más abrir. */
+.hero-main{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px;margin-top:12px}
+.hero h1{margin:0 0 2px;font-size:clamp(20px,2.4vw,26px);font-weight:800;letter-spacing:-.02em;color:#fff;text-wrap:balance}
+.hero .lead{margin:0;color:var(--navy-mute);font-size:14px}
+.hero .lead b{color:#fff;font-weight:600}
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--navy-mute);padding:7px 12px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.seg button:hover{color:#fff}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--navy-1)}
+.custom{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:4px 10px;color:#fff}
+.custom input{border:0;background:transparent;color:#fff;font-size:13px;max-width:9.5rem;color-scheme:dark}
+.icon-btn{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+.icon-btn svg{width:16px;height:16px}
+.fresh{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#fff;font-weight:600}
+.fresh i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.fresh.uf b{color:var(--gold);font-weight:800;letter-spacing:.06em;font-size:11.5px}
+.fresh[data-s="warn"] i{background:var(--warn)}.fresh[data-s="bad"] i{background:var(--bad)}.fresh[data-s="off"] i{background:var(--off)}
+@media (prefers-reduced-motion:no-preference){.fresh[data-s="ok"] i{animation:pulse 2.4s ease-out infinite}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,203,138,.6)}70%{box-shadow:0 0 0 8px rgba(63,203,138,0)}100%{box-shadow:0 0 0 0 rgba(63,203,138,0)}}
+
+/* ---------- Estado del sistema ---------- */
+.status{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px}
+.status-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.status-h h2{margin:0;font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.legend-s{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--fg-3)}
+.legend-s span{display:inline-flex;align-items:center;gap:6px}
+.legend-s i{width:8px;height:8px;border-radius:50%}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:8px}
+.tile{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;text-align:left}
+.tile:hover{border-color:var(--line-2)}
+.tile .ic{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:800}
+.tile b{display:block;font-size:13px;font-weight:700;color:var(--fg)}
+.tile small{display:block;font-size:12px;font-weight:600}
+.tile[data-s="ok"] .ic{background:var(--ok-soft);color:var(--ok)}.tile[data-s="ok"] small{color:var(--ok)}
+.tile[data-s="warn"] .ic{background:var(--warn-soft);color:var(--warn)}.tile[data-s="warn"] small{color:var(--warn)}
+.tile[data-s="bad"] .ic{background:var(--bad-soft);color:var(--bad)}.tile[data-s="bad"] small{color:var(--bad)}.tile[data-s="bad"]{border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+.tile[data-s="off"] .ic,.tile[data-s="info"] .ic{background:var(--off-soft);color:var(--off)}.tile[data-s="off"] small,.tile[data-s="info"] small{color:var(--off)}
+
+/* ---------- Pestañas ---------- */
+main{padding-block:0 48px;display:flex;flex-direction:column;gap:16px}
+main>.tabs{margin-top:-30px;position:relative;z-index:1}
+div.tile{cursor:default}
+.quedan{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.quedan h4{margin:0 0 10px;font-size:13px;font-weight:700}
+.stack{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--line)}
+.stack span{height:100%}
+.stack-l{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--fg-2)}
+.stack-l i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.stack-l b{color:var(--fg);font-variant-numeric:tabular-nums}
+.quedan p{margin:10px 0 0;font-size:12.5px;color:var(--fg-2)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:5px;box-shadow:var(--shadow)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;background:transparent;padding:9px 14px;border-radius:10px;font-weight:600;color:var(--fg-2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s,border-color .15s}
+.tab svg{width:16px;height:16px;flex:none;color:var(--fg-3);transition:color .15s}
+.tab:hover{background:var(--surface-2);border-color:var(--line);color:var(--fg)}
+.tab:hover svg{color:var(--fg-2)}
+.tab:active{transform:translateY(1px)}
+.tab[aria-selected="true"]{background:var(--navy-2);border-color:var(--navy-2);color:#fff;box-shadow:0 2px 10px rgba(19,48,94,.28)}
+.tab[aria-selected="true"] svg{color:var(--gold)}
+.tab .cnt{margin-left:6px;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--bad-soft);color:var(--bad);font-weight:800}
+.panel{display:flex;flex-direction:column;gap:16px}
+.sec-t{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:4px}
+.sec-t h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.sec-t p{margin:0;color:var(--fg-3);font-size:13px}
+
+/* ---------- Rejillas y tarjetas ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,158px),1fr));gap:12px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:16px}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px;position:relative}
+.card-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.card h3{margin:0;font-size:15px;font-weight:700;letter-spacing:-.005em}
+.card .sub{margin:3px 0 0;color:var(--fg-3);font-size:12.5px;max-width:62ch}
+.tag{font-size:11.5px;font-weight:600;color:var(--fg-3);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.kpi{padding:16px;gap:8px;overflow:hidden}
+/* Aviso de lo que frena la campaña y lectura en palabras */
+.alerta{display:flex;gap:12px;align-items:flex-start;background:var(--bad-soft);border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line));border-left:4px solid var(--bad);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--fg)}
+.alerta b{color:var(--bad)}
+.alerta .ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--bad);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.lectura{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.lectura li{position:relative;padding-left:20px;font-size:14.5px;line-height:1.5;color:var(--fg-2)}
+.lectura li::before{content:"";position:absolute;left:4px;top:.6em;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.lectura li.mal::before{background:var(--bad)}.lectura li.bien::before{background:var(--ok)}
+.lectura b{color:var(--fg);font-weight:700}
+.lectura .ref{color:var(--fg-3);font-size:12.5px}
+.ha-r{display:grid;grid-template-columns:minmax(0,1.1fr) 1fr 1fr;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}
+.ha-r:last-child{border-bottom:0}
+.ha-r>span:first-child{font-size:13px;color:var(--fg-2)}
+.ha-r>span+span{text-align:right;font-size:19px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ha-h{padding-top:0}.ha-h>span+span{font-size:14px;letter-spacing:0}
+.ha-h b{display:block}.ha-h small{display:block;font-size:11.5px;font-weight:500;color:var(--fg-3)}
+.ha-n{display:block;font-size:11.5px;font-weight:500;letter-spacing:0;color:var(--fg-3)}
+.cplmax th{padding:10px}
+.kpi .top{display:flex;align-items:center;gap:10px}
+.kpi .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.kpi .ico svg{width:17px;height:17px}
+.kpi .lab{font-size:13px;font-weight:600;color:var(--fg-2);flex:1;min-width:0}
+.kpi .val{font-size:clamp(24px,2.4vw,30px);font-weight:800;letter-spacing:-.025em;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px;min-width:0}
+.kpi .row .delta{flex:none}
+.kpi .foot{font-size:12px;color:var(--fg-3);min-height:1.2em}
+.kpi svg.spark{width:96px;max-width:45%;height:30px;flex:0 1 96px;min-width:0}
+.c-gold .ico{background:var(--gold-soft);color:var(--gold-ink)}.c-teal .ico{background:var(--teal-soft);color:var(--teal)}.c-indigo .ico{background:var(--indigo-soft);color:var(--indigo)}
+.c-coral .ico{background:var(--coral-soft);color:var(--coral)}.c-violet .ico{background:var(--violet-soft);color:var(--violet)}.c-green .ico{background:var(--ok-soft);color:var(--ok)}.c-grey .ico{background:var(--off-soft);color:var(--off)}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--fg-3);white-space:nowrap}
+.delta.good{background:var(--ok-soft);color:var(--ok)}.delta.bad{background:var(--bad-soft);color:var(--bad)}
+.help{border:0;background:transparent;color:var(--fg-3);cursor:help;padding:0;width:18px;height:18px;border-radius:50%;display:grid;place-items:center}
+.help svg{width:15px;height:15px}
+.empty{display:flex;align-items:center;justify-content:center;gap:8px;min-height:110px;color:var(--fg-3);font-size:13px;text-align:center;padding:12px}
+.errbox{display:flex;gap:10px;align-items:flex-start;background:var(--bad-soft);border-radius:var(--r-sm);padding:12px 14px;font-size:13px}
+.errbox b{color:var(--bad)}
+.note{font-size:12.5px;color:var(--fg-3)}
+.pend{background:var(--surface-2);border:1px dashed var(--line-2);border-radius:var(--r-sm);padding:14px;color:var(--fg-2);font-size:13px}
+
+/* ---------- Embudo ---------- */
+.funnel{display:flex;flex-direction:column;gap:8px}
+.f-row{display:grid;grid-template-columns:minmax(8rem,12rem) 1fr auto;gap:12px;align-items:center}
+.f-lab{font-size:13px;color:var(--fg-2);font-weight:600;line-height:1.2}
+.f-lab small{display:block;font-weight:500;color:var(--fg-3);font-size:12px}
+.f-track{height:30px;border-radius:9px;background:var(--surface-2);position:relative;overflow:hidden}
+.f-bar{position:absolute;inset:0 auto 0 0;border-radius:9px}
+.f-val{font-size:14px;min-width:4.5rem;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.f-conv{grid-column:2/4;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--fg-3);margin:-2px 0 2px}
+.f-conv .drop{color:var(--bad);font-weight:700}
+
+/* ---------- Barras ---------- */
+.hb{display:flex;flex-direction:column;gap:9px}
+.hb-row{display:grid;grid-template-columns:minmax(6.5rem,10rem) 1fr auto;gap:10px;align-items:center;font-size:13px}
+.hb-lab{color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb-track{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.hb-bar{display:block;height:100%;border-radius:6px;background:var(--line-2)}
+.hb-val{font-size:13px;font-weight:600;color:var(--fg);min-width:5rem;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- Pipeline ---------- */
+.pipe{display:flex;align-items:stretch;overflow-x:auto;padding-bottom:4px}
+.stage{flex:1 1 0;min-width:9rem;border-radius:13px;padding:14px;display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);background:var(--surface-2)}
+.stage .n{font-size:28px;font-weight:800;line-height:1}
+.stage .l{font-size:13px;font-weight:700;color:var(--fg)}
+.stage .v{font-size:14px;font-weight:700;color:var(--fg-2);font-variant-numeric:tabular-nums}
+.stage .p{font-size:12.5px;font-weight:600;color:var(--fg-3)}
+.stage.won{background:var(--ok-soft);border-color:transparent}.stage.won .n{color:var(--ok)}
+.stage.zero .n{color:var(--fg-3)}
+.arrow{flex:none;width:20px;display:grid;place-items:center;color:var(--fg-3)}
+
+/* ---------- Presupuesto y retorno ---------- */
+.pace-bar{position:relative;height:18px;border-radius:9px;background:var(--surface-2);margin-top:18px}
+.pace-fill{position:absolute;inset:0 auto 0 0;border-radius:9px;background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 70%,#fff))}
+.pace-proj{position:absolute;top:0;bottom:0;left:0;border-radius:9px;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--gold) 30%,transparent) 0 5px,transparent 5px 10px)}
+.pace-mark{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--fg);border-radius:2px}
+.pace-mark span{position:absolute;top:-19px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--fg-2);white-space:nowrap}
+.pace-mark.fin span{transform:translateX(calc(-100% + 2px))}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:12px}
+.stat b{display:block;font-size:20px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--fg-3)}
+.big{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+
+/* ---------- Tablas ---------- */
+.tbl-wrap{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:var(--r-sm)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{position:sticky;top:0;background:var(--surface-2);text-align:left;font-weight:700;color:var(--fg-2);font-size:12px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
+th button{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;padding:10px}
+th[aria-sort="ascending"] button::after{content:" ↑"}th[aria-sort="descending"] button::after{content:" ↓"}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+td .nm{font-weight:600}
+td .sm{display:block;font-size:12px;color:var(--fg-3)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.off,.pill.info{background:var(--off-soft);color:var(--off)}.pill.gold{background:var(--gold-soft);color:var(--gold-ink)}
+.cbar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.cbar span{display:block;height:6px;border-radius:3px;background:var(--gold)}
+
+/* ---------- Salud ---------- */
+.checks{display:flex;flex-direction:column}
+.check{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;padding:14px 4px;border-bottom:1px solid var(--line)}
+.check:last-child{border-bottom:0}
+.check .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800}
+.check[data-s="ok"] .ic{background:var(--ok-soft);color:var(--ok)}.check[data-s="warn"] .ic{background:var(--warn-soft);color:var(--warn)}.check[data-s="bad"] .ic{background:var(--bad-soft);color:var(--bad)}.check[data-s="off"] .ic,.check[data-s="info"] .ic{background:var(--off-soft);color:var(--off)}
+.check h4{margin:0;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.check p{margin:3px 0 0;color:var(--fg-2);font-size:13px;max-width:70ch}
+.check .when{font-size:12px;color:var(--fg-3);text-align:right;white-space:nowrap}
+.admin code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;background:var(--off-soft);padding:1px 6px;border-radius:6px;overflow-wrap:anywhere}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:10px}
+.links a{display:block;padding:12px 14px;border:1px solid var(--line);border-radius:12px;color:var(--fg);text-decoration:none;font-weight:600;font-size:13.5px}
+.links a:hover,.links a:focus-visible{border-color:var(--gold)}
+.links a small{display:block;margin-top:2px;color:var(--fg-3);font-weight:500;font-size:12px}
+.keys{display:flex;flex-wrap:wrap;gap:6px}
+.key{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--fg-2);border:1px solid var(--line)}
+.key b{font-family:var(--m);margin-left:5px}
+
+/* ---------- Gráficos ---------- */
+.chart{width:100%;min-height:250px;position:relative}
+.chart:has(> .errbox),.chart:has(> .empty){min-height:0}
+.chart svg{display:block;overflow:visible}
+.chart text{fill:var(--fg-3);font-size:11.5px;font-family:var(--f)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--fg-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px}
+.legend i.ln{height:3px;border-radius:2px}
+.sankey .lk{fill:none;stroke-opacity:.3;transition:stroke-opacity .15s}
+.sankey .lk:hover{stroke-opacity:.6}
+.sankey .nl{font-size:12px;fill:var(--fg);font-weight:600;paint-order:stroke;stroke:var(--halo);stroke-width:3px;stroke-linejoin:round}
+.sankey .nl tspan.c{fill:var(--fg-2);font-weight:700;font-size:12px}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow);padding:8px 10px;font-size:12px;min-width:150px;max-width:280px}
+#tip .t{color:var(--fg-3);margin-bottom:4px;font-weight:600}
+#tip .r{display:flex;justify-content:space-between;gap:12px}
+#tip .r span{display:inline-flex;align-items:center;gap:6px;color:var(--fg-2)}
+#tip .r i{width:8px;height:8px;border-radius:2px}
+#tip .r b{font-family:var(--m);font-weight:500}
+.defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr));gap:10px 22px;font-size:13px;color:var(--fg-2)}
+.defs b{color:var(--fg)}
+footer{padding-block:6px 32px;color:var(--fg-3);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 16px}
+footer button{border:0;background:transparent;color:var(--fg-3);text-decoration:underline;cursor:pointer;padding:0;font-size:12px}
+@media (max-width:560px){.f-row{grid-template-columns:7rem 1fr auto}.hb-row{grid-template-columns:6.5rem 1fr auto}.check{grid-template-columns:auto 1fr}.check .when{grid-column:2;text-align:left}}
+/* Móvil: lo importante arriba y sin tanto desplazamiento */
+.ver-todo{display:none;align-self:flex-start;border:1px solid var(--line);background:var(--surface-2);color:var(--fg-2);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+@media (max-width:640px){
+  .ver-todo{display:inline-flex}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .tile{padding:8px 10px;gap:8px}.tile .ic{width:22px;height:22px;font-size:11px}.tile b{font-size:12px;line-height:1.25}.tile small{font-size:11px}
+  .status.compacto .tile:not([data-s="bad"]):not([data-s="warn"]){display:none}
+  .status.compacto .legend-s{display:none}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px;gap:6px}.kpi .top{gap:8px}.kpi .ico{width:28px;height:28px}.kpi .ico svg{width:15px;height:15px}
+  .kpi .lab{font-size:12.5px}.kpi .val{font-size:22px}.kpi svg.spark{display:none}.kpi .foot{font-size:11.5px}.kpi .delta{font-size:11px;padding:2px 7px}
+  .lectura li{font-size:14px}
+  .card{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- ACCESO -->
+<div class="boot" id="boot" role="status" aria-live="polite"><span class="mark" aria-hidden="true"></span><span class="spin" aria-hidden="true"></span><span>Cargando el panel…</span></div>
+<section class="gate" id="gate" hidden>
+  <form class="gate-card" id="gate-form" autocomplete="on">
+    <div class="logo"><span class="mark" aria-hidden="true"></span><div><small>Vertical Investment</small><b>Panel Comercial</b></div></div>
+    <h1>Entrar al panel</h1>
+    <p>Los datos están cifrados. Entra con tu usuario y tu contraseña.</p>
+    <label for="user">Usuario</label>
+    <input type="text" id="user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="pw" style="margin-top:14px">Contraseña</label>
+    <input type="password" id="pw" autocomplete="current-password" required>
+    <div class="row">
+      <label class="chk" for="remember"><input type="checkbox" id="remember" checked> Recordar en este equipo</label>
+      <button type="submit" id="pw-btn">Entrar</button>
+    </div>
+    <div class="err" id="pw-err" role="alert"></div>
+  </form>
+</section>
+
+<!-- PANEL -->
+<div id="app" hidden>
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="logo"><span class="mark" aria-hidden="true"></span><div><small>Vertical Investment</small><b>Panel Comercial</b></div></div>
+        <div class="tools">
+          <span class="fresh uf num" id="uf-chip" hidden><b>UF</b><span id="uf-v"></span></span>
+          <span class="fresh num" id="fresh" data-s="ok"><i></i><span id="fresh-t">Cargando…</span></span>
+          <button type="button" class="icon-btn" id="btn-theme" title="Cambiar tema" aria-label="Cambiar tema"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" stroke-linecap="round"/></svg></button>
+          <button type="button" class="icon-btn" id="btn-reload" title="Volver a cargar los datos" aria-label="Volver a cargar los datos"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
+        </div>
+      </div>
+      <div class="hero-main">
+      <div><h1 id="hero-title">Así va la captación</h1>
+      <p class="lead num" id="hero-lead">—</p></div>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Periodo" id="presets">
+          <button type="button" data-p="hoy">Hoy</button><button type="button" data-p="ayer">Ayer</button><button type="button" data-p="7d">7 días</button><button type="button" data-p="28d">28 días</button><button type="button" data-p="90d">90 días</button><button type="button" data-p="mes">Este mes</button><button type="button" data-p="mesant">Mes anterior</button><button type="button" data-p="custom">Fechas</button>
+        </div>
+        <div class="custom" id="custom" hidden><input type="date" id="f-desde" aria-label="Desde" min="2024-01-01" max="2099-12-31"><span aria-hidden="true">–</span><input type="date" id="f-hasta" aria-label="Hasta" min="2024-01-01" max="2099-12-31"></div>
+      </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <nav class="tabs" role="tablist" aria-label="Secciones">
+      <button class="tab" role="tab" aria-controls="resumen" aria-selected="true" id="t-resumen"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>Resumen</button>
+      <button class="tab" role="tab" aria-controls="meta" aria-selected="false" id="t-meta"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.2v3.6h2.6l4.9 3V3.2L5.1 6.2z"/><path d="M12.4 5.6a3.4 3.4 0 0 1 0 4.8" stroke-linecap="round"/></svg>Meta Ads</button>
+      <button class="tab" role="tab" aria-controls="crm" aria-selected="false" id="t-crm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.8 13.5c.5-2.3 2.2-3.6 4.2-3.6s3.7 1.3 4.2 3.6"/><path d="M10.6 3.2a2.4 2.4 0 0 1 0 4.6M12.2 9.9c1.1.5 1.8 1.8 2 3.6"/></svg>Leads y CRM</button>
+      <button class="tab" role="tab" aria-controls="negocios" aria-selected="false" id="t-negocios"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="1.8" y="4.8" width="12.4" height="8.6" rx="1.6"/><path d="M5.6 4.8V3.4c0-.6.4-1 1-1h2.8c.6 0 1 .4 1 1v1.4M1.8 8.6h12.4"/></svg>Negocios y retorno</button>
+      <button class="tab" role="tab" aria-controls="web" aria-selected="false" id="t-web"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c1.7 1.7 2.5 3.7 2.5 6S9.7 12.3 8 14M8 2C6.3 3.7 5.5 5.7 5.5 8s.8 4.3 2.5 6"/></svg>Web</button>
+      <button class="tab" role="tab" aria-controls="salud" aria-selected="false" id="t-salud"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8.5h3l1.8-4.2 3 8 1.9-3.8h3.3"/></svg>Salud<span class="cnt" id="salud-cnt" hidden></span></button>
+      <button class="tab" role="tab" aria-controls="admin" aria-selected="false" id="t-admin" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.6 8.4l6-6M11.6 4.4l1.6 1.6M10 6l1.2 1.2"/></svg>Administración</button>
+    </nav>
+    <div class="alerta" id="alerta" role="alert" hidden></div>
+
+    <section class="panel" id="resumen" role="tabpanel" aria-labelledby="t-resumen">
+      <section class="status" data-st="resumen" aria-live="polite"></section>
+      <div class="kpis" id="kpis"></div>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>Hoy y ayer</h3><p class="sub">Vista rápida. No cambia con el periodo elegido arriba.</p></div></div><div id="hoyayer"></div></article>
+        <article class="card lectura-card"><div class="card-h"><div><h3>En pocas palabras</h3><p class="sub">Lo esencial del periodo, sacado de las mismas cifras del panel.</p></div><span class="tag" data-range></span></div><ul class="lectura" id="lectura"></ul></article>
+      </div>
+      <article class="card"><div class="card-h"><div><h3>¿Hasta qué costo por lead es rentable?</h3><p class="sub">Negocio nuevo, sin ventas previas: se parte de la comisión y de la probabilidad de cierre de un SQL que fija el pipeline de HubSpot. El % de leads que llega a SQL se mide en días. El tope prudente deja un 30 % de margen. Solo cuenta la pauta de Meta.</p></div><span class="tag" data-range></span></div><div id="cplmax"></div></article>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>Embudo del periodo</h3><p class="sub">Leads de Meta que entraron en el periodo y hasta dónde llegaron hoy.</p></div><span class="tag" data-range></span></div><div id="funnel"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Flujo de leads</h3><p class="sub">Cómo se reparten por renta y en qué estado los dejó la gestión.</p></div><span class="tag" data-range></span></div><div id="flow" class="chart sankey"></div></article>
+      </div>
+      <article class="card"><div class="card-h"><div><h3>Inversión, leads y MQL por día</h3><p class="sub">Barras: inversión en Meta. Líneas: leads de Meta y MQL que llegaron a HubSpot.</p></div><div class="legend"><span><i style="background:var(--gold)"></i>Inversión</span><span><i class="ln" style="background:var(--indigo)"></i>Leads</span><span><i class="ln" style="background:var(--teal)"></i>MQL</span></div></div><div id="daily" class="chart"></div></article>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>Ritmo del presupuesto</h3><p class="sub" id="pace-sub">Mes en curso frente al presupuesto mensual de pauta.</p></div><span class="pill" id="pace-pill"></span></div><div id="pace"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Retorno</h3><p class="sub">Comisiones de escrituras frente a la inversión en pauta.</p></div><span class="tag" data-range></span></div><div id="roi"></div></article>
+      </div>
+    </section>
+
+    <section class="panel" id="meta" role="tabpanel" aria-labelledby="t-meta" hidden>
+      <section class="status" data-st="meta" aria-live="polite"></section>
+      <div class="kpis" id="kpis-meta"></div>
+      <article class="card"><div class="card-h"><div><h3>Costo por lead día a día</h3><p class="sub">Barras: leads de Meta. Línea: costo por lead del día.</p></div><div class="legend"><span><i style="background:var(--indigo)"></i>Leads</span><span><i class="ln" style="background:var(--coral)"></i>Costo por lead</span></div></div><div id="daily-cpl" class="chart"></div></article>
+      <article class="card"><div class="card-h"><div><h3>Campañas</h3><p class="sub">Con gasto en el periodo o activas ahora. El costo por MQL cruza el nombre de la campaña con HubSpot. Toca un encabezado para ordenar.</p></div><span class="tag" data-range></span></div><div id="tbl-camp"></div></article>
+      <article class="card"><div class="card-h"><div><h3>Conjuntos de anuncios</h3><p class="sub">Un conjunto por público o por proyecto.</p></div><span class="tag" data-range></span></div><div id="tbl-adsets"></div></article>
+    </section>
+
+    <section class="panel" id="crm" role="tabpanel" aria-labelledby="t-crm" hidden>
+      <section class="status" data-st="crm" aria-live="polite"></section>
+      <div class="kpis" id="kpis-crm"></div>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>Tiempo hasta la primera gestión</h3><p class="sub">Desde que el lead entra en HubSpot hasta que su estado deja «Nuevo», según el historial de cambios.</p></div><span class="tag" id="tg-gest"></span></div><div id="h-gest"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Tiempo hasta la asignación</h3><p class="sub">Desde que entra hasta que tiene propietario. Lo hace la asignación automática.</p></div><span class="tag" id="tg-asig"></span></div><div id="h-asig"></div></article>
+      </div>
+      <div class="g3">
+        <article class="card"><div><h3>Estado de los leads</h3><p class="sub">Estado actual en HubSpot.</p></div><div id="h-estados"></div></article>
+        <article class="card"><div><h3>Renta líquida</h3><p class="sub">En dorado, los rangos que cuentan como MQL.</p></div><div id="h-renta"></div></article>
+        <article class="card"><div><h3>Pie y objetivo</h3><p class="sub">Respuestas del formulario.</p></div><div><p class="note" style="margin:0 0 8px;font-weight:700">Ahorro para el pie</p><div id="h-pie"></div></div><div><p class="note" style="margin:0 0 8px;font-weight:700">Objetivo de la compra</p><div id="h-obj"></div></div></article>
+      </div>
+      <article class="card"><div class="card-h"><div><h3>Por formulario</h3><p class="sub">Leads de Meta según el formulario por el que entraron.</p></div><span class="tag" data-range></span></div><div id="tbl-forms"></div></article>
+      <div class="g2">
+        <article class="card"><div><h3>Motivos de no calificación</h3><p class="sub">De los leads marcados «No califica».</p></div><div id="h-motivos"></div></article>
+        <article class="card"><div><h3>Calidad del dato</h3><p class="sub">Lo que falta registrar para que las cifras sean completas.</p></div><div id="h-calidad"></div></article>
+      </div>
+    </section>
+
+    <section class="panel" id="negocios" role="tabpanel" aria-labelledby="t-negocios" hidden>
+      <section class="status" data-st="negocios" aria-live="polite"></section>
+      <div class="kpis" id="kpis-deals"></div>
+      <article class="card"><div class="card-h"><div><h3>Pipeline «Asesoría inmobiliaria»</h3><p class="sub">Cuántos negocios hay en cada etapa ahora mismo y cuánta comisión llevan.</p></div><span class="tag">Ahora</span></div><div id="pipe"></div></article>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>¿Cuántas ventas pagan la pauta?</h3><p class="sub">Cada venta (escritura) deja entre 60 y 160 UF de comisión: propiedades de 3.000 a 4.000 UF con comisión del 2 al 4 %, según el cliente.</p></div><span class="tag" data-range></span></div><div id="breakeven"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Comisión real por negocio</h3><p class="sub">Sale de dos campos de cada negocio en HubSpot: «Valor de la propiedad (UF)» y «Comisión (%)».</p></div></div><div id="ticket"></div></article>
+      </div>
+      <article class="card"><div class="card-h"><div><h3>Negocios</h3><p class="sub">Sin datos personales. Comisión = valor de la propiedad × comisión %. «—» es un dato que falta en HubSpot.</p></div></div><div id="tbl-deals"></div></article>
+      <div class="g2">
+        <article class="card"><div><h3>Motivos de pérdida</h3></div><div id="h-perdida"></div></article>
+        <article class="card"><div><h3>Por inmobiliaria</h3><p class="sub">Negocios abiertos y ganados.</p></div><div id="h-inmob"></div></article>
+      </div>
+    </section>
+
+    <section class="panel" id="web" role="tabpanel" aria-labelledby="t-web" hidden>
+      <section class="status" data-st="web" aria-live="polite"></section>
+      <div class="kpis" id="kpis-web"></div>
+      <article class="card"><div class="card-h"><div><h3>Visitas a la web por día</h3><p class="sub">verticalgi.cl, según Google Analytics.</p></div><div class="legend"><span><i style="background:var(--teal)"></i>Sesiones</span><span><i class="ln" style="background:var(--violet)"></i>Usuarios</span></div></div><div id="web-daily" class="chart"></div></article>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>De dónde vienen</h3><p class="sub">Sesiones por canal.</p></div><span class="tag" data-range></span></div><div id="web-canales"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Qué hacen en la web</h3><p class="sub">Eventos que registra Analytics.</p></div><span class="tag" data-range></span></div><div id="web-eventos"></div></article>
+      </div>
+      <article class="card"><div class="card-h"><div><h3>Páginas más vistas</h3><p class="sub">Últimos 28 días.</p></div></div><div id="web-paginas"></div></article>
+    </section>
+
+    <section class="panel" id="salud" role="tabpanel" aria-labelledby="t-salud" hidden>
+      <section class="status" data-st="salud" aria-live="polite"></section>
+      <article class="card"><div class="card-h"><div><h3>Salud de la medición</h3><p class="sub">Cada pieza que tiene que funcionar para que los leads lleguen, se asignen y Meta aprenda de ellos.</p></div></div><div class="checks" id="checks"></div></article>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>Eventos que recibe Meta desde el CRM</h3><p class="sub">API de conversiones, últimos 27 días.</p></div></div><div id="capi-events"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Calidad de coincidencia</h3><p class="sub">Puntuación de Meta (0 a 10) y qué datos llevan los eventos.</p></div></div><div id="emq"></div></article>
+      </div>
+      <article class="card"><div><h3>Qué significa cada cifra</h3></div><div class="defs">
+        <div><b>Leads.</b> Clientes potenciales que informa Meta en el periodo.</div>
+        <div><b>Leads en HubSpot.</b> Contactos creados en el periodo que entraron por un formulario de Meta.</div>
+        <div><b>MQL.</b> Renta líquida desde $1,8 MM, la misma regla que el segmento de HubSpot.</div>
+        <div><b>Gestionados.</b> Su estado ya no es «Nuevo».</div>
+        <div><b>Contactados.</b> Estado «Contactado» o «Calificado (SQL)».</div>
+        <div><b>SQL.</b> Estado «Calificado (SQL)».</div>
+        <div><b>Primera gestión.</b> Tiempo hasta el primer cambio de estado.</div>
+        <div><b>Variación.</b> Contra el periodo anterior de la misma duración.</div>
+      </div></article>
+    </section>
+
+    <section class="panel admin" id="admin" role="tabpanel" aria-labelledby="t-admin" hidden>
+      <article class="card"><div class="card-h"><div><h3>Quién entra al panel</h3><p class="sub">Cada uno con su usuario y su contraseña. El panel es de solo lectura para todos; solo el administrador ve esta pestaña.</p></div></div><div class="checks" id="adm-users"></div>
+        <p class="note" style="margin-top:12px">Las contraseñas son secretos de GitHub: <code>PANEL_CLAVE</code> (Manu) y <code>PANEL_CLAVE_MATIAS</code> (Matías). Para cambiar una, edita su secreto; para quitarle el acceso a alguien, borra el suyo. El cambio vale desde la siguiente actualización (máximo 20 minutos) y no afecta a los demás. Añadir a otra persona requiere un cambio en el código.</p></article>
+      <div class="g2">
+        <article class="card"><div class="card-h"><div><h3>Diagnóstico técnico</h3><p class="sub">Errores de la última actualización, tal como los devolvió cada fuente.</p></div></div><div class="checks" id="adm-diag"></div></article>
+        <article class="card"><div class="card-h"><div><h3>Dónde se gestiona cada pieza</h3><p class="sub">Se abren en una pestaña nueva.</p></div></div><div class="links" id="adm-links"></div></article>
+      </div>
+    </section>
+  </main>
+
+  <div class="wrap"><footer><span>Fuentes: Meta Ads, HubSpot y Google Analytics de Vertical Investment, de solo lectura. Horario de Chile.</span><span id="foot-gen"></span><span id="foot-user"></span><button type="button" id="btn-logout">Cerrar sesión en este equipo</button></footer></div>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+(function(){
+'use strict';
+/* ============ Configuración del negocio ============ */
+const TZ='America/Santiago';
+const PRESUPUESTO_MENSUAL=500000; // pauta mensual acordada con el cliente
+const COMISION_UF=[60,160];       // comisión por operación según el cliente (29-ago-2026)
+const STAGES=[{id:'1456540969',label:'Calificado',p:.2},{id:'1456540970',label:'Asesoría agendada',p:.3},{id:'1456540971',label:'Proyecto propuesto',p:.45},{id:'1456540972',label:'Evaluación de crédito',p:.6},{id:'1456540973',label:'Reserva / promesa',p:.85},{id:'1456540974',label:'Escritura',p:1,won:true}];
+const LOST_ID='1456540975';
+const ESTADOS=[['NEW','Nuevo'],['ATTEMPTED_TO_CONTACT','Intentando contactar'],['CONNECTED','Contactado'],['OPEN_DEAL','Calificado (SQL)'],['No califica','No califica'],['UNQUALIFIED','No calificado (antiguo)'],['BAD_TIMING','Mal momento (antiguo)'],['IN_PROGRESS','En curso (antiguo)'],['OPEN','Abierto (antiguo)'],['','Sin estado']];
+const RENTA=[['menos_1_5mm','Menos de $1,5 MM'],['entre_1_5_1_8mm','$1,5 a 1,8 MM'],['entre_1_8_2_5mm','$1,8 a 2,5 MM'],['entre_2_5_3_5mm','$2,5 a 3,5 MM'],['mas_3_5mm','Más de $3,5 MM']];
+const RENTA_MQL=new Set(['entre_1_8_2_5mm','entre_2_5_3_5mm','mas_3_5mm']);
+const RENTA_OLD={rangos_de_renta:['entre_$2.200','entre_$2.700','entre_$3.700','más_de','mas_de'],cul_es_el_rango_de_tu_renta:['entre_$2.200','entre_$2.700','más_de','mas_de']};
+const PIE=[['sin_ahorro','Sin ahorro'],['menos_5mm','Menos de $5 MM'],['entre_5_10mm','$5 a 10 MM'],['entre_10_20mm','$10 a 20 MM'],['mas_20mm','Más de $20 MM'],['','Sin dato']];
+const OBJ=[['vivir','Para vivir'],['invertir','Para invertir'],['ambos','Vivir y arrendar'],['','Sin dato']];
+const MOT_NC=[['renta','Renta'],['antiguedad','Antigüedad laboral'],['sin_titulo','Sin título'],['sin_tarjeta','Sin tarjeta'],['sin_interes','Sin interés'],['no_contesta','No contesta'],['otro','Otro'],['','Sin motivo registrado']];
+const MOT_PER={no_contesta:'No contesta',sin_renta:'Sin renta',sin_pie:'Sin pie',rechazo_banco:'Rechazo del banco',compro_otro:'Compró otro',solo_cotizando:'Solo cotizando',proyecto_no_acomodo:'El proyecto no le acomodó',postergo:'Postergó'};
+const INMOB={leben:'Leben',boetsch:'Boetsch',socovesa:'Socovesa',sento:'Sento',exacon:'Exacon',firo:'Firo',metra:'Metra',neohaus:'Neohaus'};
+const CAPI_EVENTOS=['LEADS','MQL','QUALIFIED','Cotización','CONVERTED'];
+const CH={ 'Paid Social':'Social de pago','Organic Social':'Social orgánico','Organic Search':'Búsqueda orgánica','Paid Search':'Búsqueda de pago','Direct':'Directo','Referral':'Referencia','Unassigned':'Sin asignar','Email':'Correo','Display':'Display','Organic Video':'Vídeo orgánico','Cross-network':'Varias redes','Organic Shopping':'Compras orgánicas','Paid Video':'Vídeo de pago','Paid Other':'Otros de pago','Mobile Push Notifications':'Notificaciones','Affiliates':'Afiliados','SMS':'SMS','Audio':'Audio'};
+
+/* ============ Utilidades ============ */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isN=v=>v!=null&&isFinite(v);
+const nf0=new Intl.NumberFormat('es-CL',{maximumFractionDigits:0}),nf1=new Intl.NumberFormat('es-CL',{maximumFractionDigits:1}),nfc=new Intl.NumberFormat('es-CL',{notation:'compact',maximumFractionDigits:1});
+const clp=v=>isN(v)?'$'+nf0.format(Math.round(v)):'—';
+const clpC=v=>isN(v)?(Math.abs(v)>=1e6?'$'+nfc.format(v):'$'+nf0.format(Math.round(v))):'—';
+const int=v=>isN(v)?nf0.format(v):'—';
+const pct=(v,d=1)=>isN(v)?new Intl.NumberFormat('es-CL',{maximumFractionDigits:d}).format(v*100)+' %':'—';
+const ufF=v=>isN(v)?nf1.format(v)+' UF':'—';
+const ufR=x=>x.lo===x.hi?ufF(x.lo):nf0.format(x.lo)+' a '+nf0.format(x.hi)+' UF';
+const clpR=(x,uf)=>!isN(uf)?'':x.lo===x.hi?clpC(x.lo*uf):clpC(x.lo*uf)+' a '+clpC(x.hi*uf);
+const dec=(v,d=2)=>isN(v)?new Intl.NumberFormat('es-CL',{maximumFractionDigits:d}).format(v):'—';
+const dur=x=>{if(!isN(x))return'—';const m=x/6e4;if(m<60)return nf0.format(Math.max(1,Math.round(m)))+' min';const h=m/60;if(h<48)return nf1.format(h)+' h';return nf1.format(h/24)+' días'};
+const div=(a,b)=>b?a/b:null;
+const median=a=>{const s=a.filter(isN).sort((x,y)=>x-y);if(!s.length)return null;const k=s.length>>1;return s.length%2?s[k]:(s[k-1]+s[k])/2};
+const num=v=>{if(v==null||v==='')return null;const n=Number(v);return isFinite(n)?n:null};
+function tzOff(ms){const p=new Intl.DateTimeFormat('en-US',{timeZone:TZ,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(ms));const g=t=>+p.find(x=>x.type===t).value;return Date.UTC(g('year'),g('month')-1,g('day'),g('hour'),g('minute'),g('second'))-ms}
+function startCL(ds){const [y,m,d]=ds.split('-').map(Number);const b=Date.UTC(y,m-1,d);return b-tzOff(b+3*36e5)}
+const dayFmt=new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'});
+const dayCL=ms=>dayFmt.format(new Date(ms));
+const hourCL=ms=>+new Intl.DateTimeFormat('en-US',{timeZone:TZ,hour:'2-digit',hourCycle:'h23'}).format(new Date(ms));
+const today=()=>dayCL(Date.now());
+const addDays=(ds,n)=>{const [y,m,d]=ds.split('-').map(Number);return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10)};
+const diffDays=(a,b)=>Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5);
+const sd=new Intl.DateTimeFormat('es-CL',{day:'numeric',month:'short',timeZone:'UTC'});
+const fDay=ds=>sd.format(new Date(ds+'T12:00:00Z')).replace('.','');
+const fdt=new Intl.DateTimeFormat('es-CL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:TZ});
+const fWhen=ms=>isN(ms)?fdt.format(new Date(ms)).replace('.',''):'—';
+function ago(ms){if(!isN(ms))return'—';const s=(Date.now()-ms)/1e3;if(s<90)return'hace un momento';if(s<3600)return'hace '+Math.round(s/60)+' min';if(s<172800)return'hace '+nf1.format(s/3600)+' h';return'hace '+Math.round(s/86400)+' días'}
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const b64e=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+
+/* ============ Acceso y descifrado ============ */
+// Cada usuario tiene en el sobre la llave de los datos, cifrada con la clave derivada de su contraseña.
+// «Recordar» guarda esa clave derivada (nunca la contraseña): si se borra el usuario o cambia su
+// contraseña, deja de servir en la siguiente actualización.
+const S={D:null,sess:null,user:null,preset:ls.get('vp_preset')||'28d',custom:{},range:null,M:null};
+const te=new TextEncoder();
+const normUser=u=>(u||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase();
+async function userId(u){const h=new Uint8Array(await crypto.subtle.digest('SHA-256',te.encode('vertical-panel/v2/id/'+u)));return Array.from(h.slice(0,8),b=>b.toString(16).padStart(2,'0')).join('')}
+async function deriveKey(pass,sal,iter){const base=await crypto.subtle.importKey('raw',te.encode(pass),'PBKDF2',false,['deriveBits']);return crypto.subtle.deriveBits({name:'PBKDF2',salt:b64d(sal),iterations:iter,hash:'SHA-256'},base,256)}
+async function aesOpen(raw,iv,ct,aad){const k=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);return crypto.subtle.decrypt(aad?{name:'AES-GCM',iv,additionalData:aad}:{name:'AES-GCM',iv},k,ct)}
+const fail=code=>Object.assign(new Error(code),{code});
+async function entryFor(env,u){if(env.v!==2)throw fail('version');const id=await userId(u),ent=(env.usuarios||{})[id];if(!ent)throw fail('nouser');return{id,ent}}
+async function openEnv(env,u,kek){const{id,ent}=await entryFor(env,u);let carga;
+  try{carga=JSON.parse(new TextDecoder().decode(await aesOpen(kek,b64d(ent.iv),b64d(ent.llave),te.encode(id))))}catch(e){throw fail('badpass')}
+  const pt=await aesOpen(b64d(carga.k),b64d(env.iv),b64d(env.datos));
+  const txt=await new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return{D:JSON.parse(txt),user:{u:carga.u,rol:carga.rol,usuarios:carga.usuarios||null}}}
+async function fetchEnv(){const r=await fetch('datos.cifrados.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('No se pudieron descargar los datos ('+r.status+').');return r.json()}
+// Sin «Recordar», la sesión va en sessionStorage: aguanta recargas y se borra al cerrar el navegador.
+const ss={get:k=>{try{return sessionStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{sessionStorage.setItem(k,v)}catch(e){}},del:k=>{try{sessionStorage.removeItem(k)}catch(e){}}};
+function savedSess(){try{const s=JSON.parse(ls.get('vp_s')||ss.get('vp_s')||'null');return s&&s.u&&s.k?{u:s.u,kek:b64d(s.k).buffer}:null}catch(e){return null}}
+function clearSess(){S.sess=null;S.user=null;S.D=null;ls.del('vp_s');ss.del('vp_s')}
+async function load(silent){
+  try{if(ls.get('vp_k')){ls.del('vp_k');showGate('El panel ahora pide usuario y contraseña. Tu contraseña es la misma.');return}
+    if(!S.sess)S.sess=savedSess();
+    if(!S.sess){showGate();return}
+    const env=await fetchEnv();
+    const u=S.sess.u;
+    try{const r=await openEnv(env,u,S.sess.kek);S.D=r.D;S.user=r.user}
+    catch(e){clearSess();$('#user').value=u;
+      showGate(e.code==='nouser'?'El usuario «'+u+'» ya no tiene acceso a este panel.':e.code==='badpass'?'Tu contraseña cambió. Escríbela de nuevo.':'No se pudieron abrir los datos. Entra de nuevo.');return}
+    showApp();draw()}
+  catch(e){if(!silent){showGate(e.message)}}}
+// Un fallo al dibujar no cierra la sesión: el panel se queda abierto y avisa arriba.
+function draw(){try{recompute()}catch(e){console.error(e);const el=$('#alerta');el.hidden=false;el.innerHTML='<span class="ic" aria-hidden="true">!</span><div><b>Una parte del panel no se pudo dibujar.</b> Recarga la página; si sigue, avisa a Manu. Detalle: '+esc(e.message)+'</div>'}}
+function showGate(msg){$('#boot').hidden=true;$('#gate').hidden=false;$('#app').hidden=true;$('#pw-err').textContent=msg||'';setTimeout(()=>($('#user').value?$('#pw'):$('#user')).focus(),50)}
+function showApp(){$('#boot').hidden=true;$('#gate').hidden=true;$('#app').hidden=false;const adm=!!(S.user&&S.user.rol==='admin');$('#t-admin').hidden=!adm;
+  if(!adm&&!$('#admin').hidden)showTab('resumen',false);
+  $('#foot-user').textContent=S.user?'Usuario: '+S.user.u+(adm?' (administrador)':' (lector)'):''}
+$('#gate-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('#pw-btn');b.disabled=true;$('#pw-err').textContent='Comprobando…';
+  try{const u=normUser($('#user').value),env=await fetchEnv();let r,kek;
+    try{const{ent}=await entryFor(env,u);kek=await deriveKey($('#pw').value,ent.sal,env.iter);r=await openEnv(env,u,kek)}
+    catch(x){throw new Error(x.code==='version'?'Los datos aún están en el formato anterior. Prueba en unos minutos.':'Usuario o contraseña incorrectos.')}
+    S.D=r.D;S.user=r.user;S.sess={u,kek};const sv=JSON.stringify({u,k:b64e(kek)});if($('#remember').checked){ls.set('vp_s',sv);ss.del('vp_s')}else{ss.set('vp_s',sv);ls.del('vp_s')}
+    $('#pw').value='';$('#pw-err').textContent='';showApp();draw()}
+  catch(x){$('#pw-err').textContent=x.message}finally{b.disabled=false}});
+$('#btn-logout').addEventListener('click',()=>{clearSess();ls.del('vp_k');showGate('Sesión cerrada en este equipo.')});
+
+/* ============ Periodo ============ */
+function rangeFor(p){const t=today();let desde,hasta=t;
+  switch(p){case'hoy':desde=t;break;case'ayer':desde=hasta=addDays(t,-1);break;case'7d':desde=addDays(t,-6);break;case'90d':desde=addDays(t,-89);break;case'mes':desde=t.slice(0,8)+'01';break;
+    case'mesant':{const f=t.slice(0,8)+'01';hasta=addDays(f,-1);desde=hasta.slice(0,8)+'01';break}
+    case'custom':desde=S.custom.desde||addDays(t,-27);hasta=S.custom.hasta||t;if(desde>hasta){const x=desde;desde=hasta;hasta=x}break;
+    default:p='28d';desde=addDays(t,-27)}
+  const days=diffDays(desde,hasta)+1;
+  return{p,desde,hasta,days,prevDesde:addDays(desde,-days),prevHasta:addDays(desde,-1),label:desde===hasta?fDay(desde)+' '+desde.slice(0,4):fDay(desde)+' – '+fDay(hasta)+' '+hasta.slice(0,4),s:startCL(desde),e:startCL(addDays(hasta,1)),ps:startCL(addDays(desde,-days))}}
+
+/* ============ Cálculo ============ */
+const isMeta=l=>/^Facebook Lead Ads/.test(l.conv||'')||/^Facebook Lead Ads/.test(l.conv2||'');
+const CAIDO=new Set(['No califica','UNQUALIFIED','BAD_TIMING']);
+function isMql(l){if(RENTA_MQL.has(l.renta))return true;const pre=RENTA_OLD[l.renta_ant_campo];return!!(pre&&pre.some(x=>(l.renta_ant||'').startsWith(x)))}
+function rentaKey(l){if(l.renta)return l.renta;if(l.renta_ant)return isMql(l)?'__oldmql':'__oldno';return''}
+const campKey=s=>(s||'').trim().toLocaleLowerCase('es');
+const formName=l=>((l.conv||l.conv2||'').replace(/^Facebook Lead Ads:\s*/,''))||'(sin formulario)';
+const inR=(ms,a,b)=>ms>=a&&ms<b;
+function countBy(a,f){const m=new Map();a.forEach(x=>{const k=f(x);m.set(k,(m.get(k)||0)+1)});return m}
+
+function compute(){const D=S.D,r=S.range,E=D.errores||{};
+  const M={r,gen:Date.parse(D.generado),err:E,uf:D.uf,capiDesde:D.capi_desde};
+  // ---- Meta
+  const me=D.meta;
+  if(me){const rows=(me.diario||[]).map(x=>({d:x[0],spend:x[1]||0,leads:x[2]||0,impr:x[3]||0,clicks:x[4]||0}));const byDay=new Map(rows.map(x=>[x.d,x]));
+    const days=[];for(let d=r.desde;d<=r.hasta;d=addDays(d,1))days.push(byDay.get(d)||{d,spend:0,leads:0,impr:0,clicks:0});
+    const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);const prev=rows.filter(x=>x.d>=r.prevDesde&&x.d<=r.prevHasta);
+    const t={spend:sum(days,'spend'),leads:sum(days,'leads'),impr:sum(days,'impr'),clicks:sum(days,'clicks')};
+    const p={spend:sum(prev,'spend'),leads:sum(prev,'leads'),impr:sum(prev,'impr'),clicks:sum(prev,'clicks')};
+    const mes=today().slice(0,7);const monthSpend=rows.filter(x=>x.d.slice(0,7)===mes).reduce((s,x)=>s+x.spend,0);
+    // campañas y conjuntos desde el diario por conjunto
+    const sets=new Map((me.conjuntos||[]).map(c=>[c.id,c])),camps=new Map((me.campanas||[]).map(c=>[c.id,c]));
+    const agS=new Map(),agC=new Map();
+    (me.conjunto_diario||[]).forEach(x=>{if(x[0]<r.desde||x[0]>r.hasta)return;const s=sets.get(x[1]);const cid=s?s.campana:null;
+      const o=agS.get(x[1])||{spend:0,leads:0,impr:0,clicks:0};o.spend+=x[2]||0;o.leads+=x[3]||0;o.impr+=x[4]||0;o.clicks+=x[5]||0;agS.set(x[1],o);
+      if(cid){const c=agC.get(cid)||{spend:0,leads:0,impr:0,clicks:0};c.spend+=x[2]||0;c.leads+=x[3]||0;c.impr+=x[4]||0;c.clicks+=x[5]||0;agC.set(cid,c)}});
+    const campsL=[...camps.values()].map(c=>({id:c.id,name:c.nombre,status:c.estado,obj:c.objetivo,budget:c.ppto,...(agC.get(c.id)||{spend:0,leads:0,impr:0,clicks:0})})).filter(c=>c.spend>0||c.status==='ACTIVE');
+    const setsL=[...sets.values()].map(c=>({id:c.id,name:c.nombre,camp:(camps.get(c.campana)||{}).nombre||'',status:c.estado,budget:c.ppto,...(agS.get(c.id)||{spend:0,leads:0,impr:0,clicks:0})})).filter(c=>c.spend>0||c.status==='ACTIVE');
+    const genDia=dayCL(M.gen);
+    M.meta={...t,prev:p,cpl:div(t.spend,t.leads),pcpl:div(p.spend,p.leads),ctr:div(t.clicks,t.impr),cpm:div(t.spend*1000,t.impr),days,monthSpend,camps:campsL,sets:setsL,cut150:diffDays(r.desde,today())>148,
+      spendHoy:(byDay.get(genDia)||{spend:0}).spend,spendAyer:(byDay.get(addDays(genDia,-1))||{spend:0}).spend,estado:me.estado||null,byDay}}
+  // ---- HubSpot
+  const hs=D.hubspot;
+  if(hs){const L=(hs.leads||[]).map(l=>({...l,meta:isMeta(l),mql:isMql(l)}));
+    const cur=L.filter(l=>l.meta&&inR(l.c,r.s,r.e)),prev=L.filter(l=>l.meta&&inR(l.c,r.ps,r.s)),otros=L.filter(l=>!l.meta&&inR(l.c,r.s,r.e)).length;
+    const agg=a=>({n:a.length,mql:a.filter(l=>l.mql).length,noMql:a.filter(l=>!l.mql&&rentaKey(l)).length,sinRenta:a.filter(l=>!rentaKey(l)).length,gest:a.filter(l=>l.st&&l.st!=='NEW').length,cont:a.filter(l=>l.st==='CONNECTED'||l.st==='OPEN_DEAL').length,sql:a.filter(l=>l.st==='OPEN_DEAL').length,nc:a.filter(l=>l.st==='No califica'||l.st==='UNQUALIFIED').length});
+    const A=agg(cur),B=agg(prev);
+    const bk=(vals,edges,rest,restN)=>edges.map(([l,a,b])=>({label:l,n:vals.filter(v=>isN(v)&&v>=a&&v<b).length})).concat([{label:rest,n:restN,rest:true}]);
+    const sinGest=cur.filter(l=>!l.st||l.st==='NEW');
+    const dailyHs={};cur.forEach(l=>{const d=dayCL(l.c);const o=dailyHs[d]||(dailyHs[d]={n:0,mql:0});o.n++;if(l.mql)o.mql++});
+    // HubSpot guarda la campaña en minúsculas: se cruza con Meta sin distinguir mayúsculas.
+    const byCamp={};cur.forEach(l=>{const k=campKey(l.camp);if(!k)return;const o=byCamp[k]||(byCamp[k]={n:0,mql:0,sql:0});o.n++;if(l.mql)o.mql++;if(l.st==='OPEN_DEAL')o.sql++});
+    const grp=l=>l.mql?'MQL':(rentaKey(l)?'Renta bajo $1,8 MM':'Sin renta');
+    const stg=l=>{const s=l.st;if(!s||s==='NEW')return'Sin gestionar';if(s==='ATTEMPTED_TO_CONTACT')return'Intentando contactar';if(s==='CONNECTED')return'Contactado';if(s==='OPEN_DEAL')return'SQL';if(s==='No califica'||s==='UNQUALIFIED')return'No califica';return'Otro estado'};
+    const links=new Map();cur.forEach(l=>{const g=grp(l),s=stg(l);links.set('Leads|'+g,(links.get('Leads|'+g)||0)+1);links.set(g+'|'+s,(links.get(g+'|'+s)||0)+1)});
+    const now=Date.now(),rec=L.filter(l=>l.meta&&now-l.c<48*36e5);
+    // Caídos: descartados antes de SQL. Archivados: borrados en HubSpot (null si no se pudieron leer).
+    const arch=hs.archivados?hs.archivados.filter(a=>inR(a.c,r.s,r.e)):null;
+    M.crm={...A,prev:B,otros,sinProp:cur.filter(l=>!l.prop).length,cortado:hs.cortado,
+      caidos:cur.filter(l=>CAIDO.has(l.st)).length,ncN:cur.filter(l=>l.st==='No califica').length,arch:arch?arch.length:null,
+      gestMed:median(cur.map(l=>l.gest)),gestN:cur.filter(l=>isN(l.gest)).length,sinGest:sinGest.length,sinGest24:sinGest.filter(l=>now-l.c>864e5).length,
+      gestHist:bk(cur.map(l=>l.gest),[['Menos de 1 h',0,36e5],['1 a 4 h',36e5,144e5],['4 a 24 h',144e5,864e5],['1 a 3 días',864e5,2592e5],['Más de 3 días',2592e5,Infinity]],'Sin gestionar',sinGest.length),
+      asigMed:median(cur.map(l=>l.asig)),asigN:cur.filter(l=>isN(l.asig)).length,
+      asigHist:bk(cur.map(l=>l.asig),[['Menos de 20 min',0,12e5],['20 a 60 min',12e5,36e5],['1 a 4 h',36e5,144e5],['Más de 4 h',144e5,Infinity]],'Sin asignar',cur.filter(l=>!l.prop).length),
+      estados:ESTADOS.map(([k,l])=>({k,label:l,n:cur.filter(x=>(x.st||'')===k).length})).filter(x=>x.n>0||['NEW','ATTEMPTED_TO_CONTACT','CONNECTED','OPEN_DEAL','No califica'].includes(x.k)),
+      renta:(()=>{const cb=countBy(cur,rentaKey);const o=RENTA.map(([k,l])=>({k,label:l,n:cb.get(k)||0,hi:RENTA_MQL.has(k)}));if(cb.get('__oldmql'))o.push({label:'Formulario antiguo: MQL',n:cb.get('__oldmql'),hi:true});if(cb.get('__oldno'))o.push({label:'Formulario antiguo: otro',n:cb.get('__oldno')});o.push({label:'Sin dato',n:cb.get('')||0,rest:true});return o})(),
+      pie:PIE.map(([k,l])=>({k,label:l,n:cur.filter(x=>(x.pie||'')===k).length,rest:!k})),
+      obj:OBJ.map(([k,l])=>({k,label:l,n:cur.filter(x=>(x.obj||'')===k).length,rest:!k})).filter(x=>x.n>0||x.k!=='ambos'),
+      motivos:MOT_NC.map(([k,l])=>({label:l,n:cur.filter(x=>x.st==='No califica'&&(x.mot||'')===k).length,rest:!k})).filter(x=>x.n>0),
+      sinEstado:cur.filter(l=>!l.st).length,ncSinMotivo:cur.filter(l=>l.st==='No califica'&&!l.mot).length,conAct:cur.filter(l=>l.act).length,
+      forms:[...countBy(cur,formName).keys()].map(f=>({name:f,...agg(cur.filter(l=>formName(l)===f))})).sort((a,b)=>b.n-a.n),
+      dailyHs,byCamp,flow:{total:cur.length,links:[...links].map(([k,v])=>{const [a,b]=k.split('|');return{a,b,v}})},
+      recent:{n:rec.length,unassigned:rec.filter(l=>!l.prop&&now-l.c>30*6e4).length,capiMissing:M.capiDesde?rec.filter(l=>l.c>=startCL(M.capiDesde)&&now-l.c>40*6e4&&!(l.et||'').split(';').includes('LEADS')).length:null}};
+    // negocios
+    const deals=(hs.negocios||[]).map(d=>{const st=STAGES.find(s=>s.id===d.etapa),lost=d.etapa===LOST_ID,uf=num(d.uf),pc=num(d.pct);return{...d,st,lost,won:!!(st&&st.won),order:st?STAGES.indexOf(st):(lost?99:98),stageLabel:st?st.label:(lost?'Perdido':'Otra etapa'),prob:st?st.p:0,uf,pc,com:uf&&pc?uf*pc/100:null,inmobL:d.inmob?(INMOB[d.inmob]||d.inmob):'',motivoL:d.motivo?(MOT_PER[d.motivo]||d.motivo):''}});
+    const open=deals.filter(d=>!d.won&&!d.lost),wonR=deals.filter(d=>d.won&&inR(d.cerrado,r.s,r.e)),withVal=deals.filter(d=>d.uf&&d.pc);
+    // Comisión: la real si el negocio tiene valor y % en HubSpot; si no, el rango por operación que dio el cliente.
+    const rango=a=>{const real=a.reduce((s,d)=>s+(d.com||0),0),sin=a.filter(d=>!d.com).length;return{lo:real+sin*COMISION_UF[0],hi:real+sin*COMISION_UF[1],sin,n:a.length}};
+    M.deals={rows:deals,open:open.length,juego:rango(open),won:rango(wonR),
+      stages:STAGES.map(s=>{const a=deals.filter(d=>d.etapa===s.id);return{...s,n:a.length,com:a.reduce((x,d)=>x+(d.com||0),0),sin:a.filter(d=>!d.com).length}}),lost:deals.filter(d=>d.lost).length,
+      createdR:deals.filter(d=>inR(d.creado,r.s,r.e)).length,lostR:deals.filter(d=>d.lost&&inR(d.creado,r.s,r.e)).length,wonR:wonR.length,wonUF:wonR.reduce((s,d)=>s+(d.com||0),0),cobUF:wonR.filter(d=>d.cobrada).reduce((s,d)=>s+(d.com||0),0),
+      ticket:withVal.length?withVal.reduce((s,d)=>s+d.uf,0)/withVal.length:null,comMedia:withVal.length?withVal.reduce((s,d)=>s+d.com,0)/withVal.length:null,nVal:withVal.length,
+      perdida:[...countBy(deals.filter(d=>d.lost),d=>d.motivoL||'Sin motivo')].map(([label,n])=>({label,n})).sort((a,b)=>b.n-a.n),
+      inmob:[...countBy(deals.filter(d=>!d.lost),d=>d.inmobL||'Sin inmobiliaria')].map(([label,n])=>({label,n})).sort((a,b)=>b.n-a.n)}}
+  // Meta informa los leads con retraso (minutos u horas). Si a HubSpot ya llegaron más leads de sus
+  // formularios en el periodo, el costo por lead se calcula con los de HubSpot y se dice.
+  if(M.meta){const m=M.meta,hsN=M.crm?M.crm.n+(M.crm.arch||0):0;m.leadsN=Math.max(m.leads,hsN);m.cplHs=hsN>m.leads;m.cpl=div(m.spend,m.leadsN)}
+  if(M.meta&&M.crm){M.cross={cpmql:div(M.meta.spend,M.crm.mql),cpsql:div(M.meta.spend,M.crm.sql),pcpmql:div(M.meta.prev.spend,M.crm.prev.mql)};M.meta.camps.forEach(c=>{c.hs=M.crm.byCamp[campKey(c.name)]||null})}
+  // ---- GA4
+  const g=D.ga4;
+  if(g){const rows=(g.diario||[]).map(x=>({d:x[0],users:x[1],newUsers:x[2],sessions:x[3],engaged:x[4],views:x[5],key:x[6]}));const by=new Map(rows.map(x=>[x.d,x]));
+    const days=[];for(let d=r.desde;d<=r.hasta;d=addDays(d,1))days.push(by.get(d)||{d,users:0,newUsers:0,sessions:0,engaged:0,views:0,key:0});
+    const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0),prev=rows.filter(x=>x.d>=r.prevDesde&&x.d<=r.prevHasta);
+    const ch=new Map();(g.canales||[]).forEach(x=>{if(x[0]>=r.desde&&x[0]<=r.hasta)ch.set(x[1],(ch.get(x[1])||0)+x[2])});
+    const ev=new Map();(g.eventos||[]).forEach(x=>{if(x[0]>=r.desde&&x[0]<=r.hasta)ev.set(x[1],(ev.get(x[1])||0)+x[2])});
+    M.ga4={days,users:sum(days,'users'),sessions:sum(days,'sessions'),engaged:sum(days,'engaged'),views:sum(days,'views'),key:sum(days,'key'),newUsers:sum(days,'newUsers'),
+      prev:{sessions:sum(prev,'sessions'),users:sum(prev,'users')},rt:g.tiempo_real,canales:[...ch].map(([k,n])=>({label:CH[k]||k,n})).sort((a,b)=>b.n-a.n),
+      eventos:[...ev].map(([k,n])=>({label:k,n})).sort((a,b)=>b.n-a.n),paginas:g.paginas||[],cut:diffDays(r.desde,today())>118}}
+  // ---- Píxel
+  const px=(me&&me.pixel)||null;
+  if(px){const evs=px.eventos||[];const crm=evs.filter(e=>CAPI_EVENTOS.includes(e.nombre));const lastCrm=crm.map(e=>Date.parse(e.ultimo)).filter(isN);
+    M.pixel={browser:Date.parse(px.navegador)||null,crmLast:lastCrm.length?Math.max(...lastCrm):null,events:evs,calidad:px.calidad||null,err:px.error_detalle||px.error_eventos||null}}
+  // ---- Hoy y ayer: vista rápida que no depende del periodo elegido
+  const hoy=today();M.ha=[hoy,addDays(hoy,-1)].map(d=>{const mr=M.meta?(M.meta.byDay.get(d)||{spend:0,leads:0}):null,hl=hs?(hs.leads||[]).filter(l=>isMeta(l)&&dayCL(l.c)===d):null;
+    const ar=hs&&hs.archivados?hs.archivados.filter(a=>dayCL(a.c)===d).length:0;
+    const nHs=hl?hl.length+ar:0,leadsN=mr?Math.max(mr.leads,nHs):(hl?nHs:null);
+    return{d,meta:mr,leadsN,cpl:mr?div(mr.spend,leadsN):null,hs:hl?{n:nHs,mql:hl.filter(isMql).length}:null}});
+  M.health=health(M);return M}
+
+/* ============ Salud ============ */
+function age(ms,okH,warnH){if(!isN(ms))return'bad';const h=(Date.now()-ms)/36e5;return h<=okH?'ok':h<=warnH?'warn':'bad'}
+// Lo que puede frenar la campaña aunque las cifras no lo digan: la cuenta (pagos), los anuncios
+// (revisión, rechazo, incidencias) y cuánto gasta hoy frente a su presupuesto.
+const CUENTA_META={1:['ok','Activa','Meta marca la cuenta como activa. Ojo: un error de la tarjeta no siempre cambia este estado; lo delata la casilla «Entrega de hoy».'],2:['bad','Desactivada','Meta desactivó la cuenta publicitaria: no se muestra ningún anuncio.'],
+  3:['bad','Pago pendiente','Meta no pudo cobrar y hay un saldo sin pagar: los anuncios se detienen hasta pagarlo. Se arregla en Facturación y pagos de la cuenta.'],
+  7:['warn','En revisión','Meta está revisando la cuenta; mientras tanto puede frenar la entrega.'],
+  8:['bad','Pago pendiente','Meta tiene un cobro pendiente de liquidar: revisa Facturación y pagos de la cuenta.'],
+  9:['warn','Periodo de gracia','Un cobro falló y Meta da un plazo antes de detener los anuncios: revisa la tarjeta en Facturación y pagos.'],
+  100:['bad','Cierre pendiente','La cuenta está en proceso de cierre.'],101:['bad','Cerrada','La cuenta publicitaria está cerrada.']};
+function metaAlertas(M){const ES=M.meta&&M.meta.estado;if(!ES)return[];const out=[];
+  // Cuenta
+  const C=ES.cuenta;
+  if(!C)out.push({k:'cuenta',label:'Cuenta de Meta',s:'warn',st:'Sin dato',d:'No se pudo leer el estado de la cuenta'+(ES.error_cuenta?': '+ES.error_cuenta:'.'),when:''});
+  else{const m=CUENTA_META[C.estado]||['warn','Estado '+C.estado,'Meta devuelve un estado de cuenta poco habitual ('+C.estado+').'];
+    const tope=C.tope?' Límite de gasto de la cuenta: '+clp(C.tope)+(isN(C.gastado)?' ('+clp(C.gastado)+' contados).':'.'):'';
+    out.push({k:'cuenta',label:'Cuenta de Meta',s:m[0],st:m[1],d:m[2]+tope,when:''})}
+  // Anuncios
+  const A=ES.anuncios;
+  if(!A)out.push({k:'anuncios',label:'Anuncios',s:'warn',st:'Sin dato',d:'No se pudo leer el estado de los anuncios'+(ES.error_anuncios?': '+ES.error_anuncios:'.'),when:''});
+  else{const de=e=>A.filter(a=>e.includes(a.estado)),pago=de(['PENDING_BILLING_INFO']),rech=de(['DISAPPROVED']),inc=A.filter(a=>a.estado==='WITH_ISSUES'||(a.problemas||[]).length),rev=de(['PENDING_REVIEW','IN_PROCESS']),act=de(['ACTIVE','PREAPPROVED']);
+    const nom=a=>'«'+a.nombre+'»',det=a=>((a.problemas||[])[0]||{}).resumen||((a.revision||[])[0])||'';
+    out.push(pago.length?{k:'anuncios',label:'Anuncios',s:'bad',st:'Falta el pago',d:'Meta frena '+nom(pago[0])+' por un problema de facturación de la cuenta.',when:''}
+      :rech.length?{k:'anuncios',label:'Anuncios',s:'bad',st:'Rechazado',d:'Meta rechazó '+nom(rech[0])+(det(rech[0])?': '+det(rech[0]):'.'),when:''}
+      :inc.length?{k:'anuncios',label:'Anuncios',s:'bad',st:'Con incidencias',d:nom(inc[0])+(det(inc[0])?': '+det(inc[0]):' tiene incidencias de entrega.'),when:''}
+      :rev.length?{k:'anuncios',label:'Anuncios',s:'warn',st:'En revisión',d:int(rev.length)+(rev.length>1?' anuncios en revisión':' anuncio en revisión')+' de Meta: no se muestra hasta que lo apruebe.',when:''}
+      :act.length?{k:'anuncios',label:'Anuncios',s:'ok',st:act.length>1?act.length+' activos':'1 activo',d:'Sin incidencias ni rechazos: '+act.map(nom).join(', ')+'.',when:''}
+      :{k:'anuncios',label:'Anuncios',s:'info',st:'Ninguno activo',d:'No hay anuncios activos en la cuenta.',when:''})}
+  // Entrega de hoy
+  const S=(ES.conjuntos||[]).filter(s=>s.estado==='ACTIVE'),ppto=S.reduce((x,s)=>x+(s.ppto||0),0);
+  if(S.length&&ppto){const h=hourCL(M.gen),gHoy=M.meta.spendHoy,esp=ppto*h/24,hora=new Intl.DateTimeFormat('es-CL',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(M.gen));
+    const ap=S.find(s=>s.aprendizaje==='FAIL')?' Meta indica «aprendizaje limitado»: con este presupuesto le cuesta conseguir suficientes resultados.':S.find(s=>s.aprendizaje==='LEARNING')?' En fase de aprendizaje.':'';
+    const ayer=' Ayer: '+clp(M.meta.spendAyer)+' de '+clp(ppto)+'.';
+    out.push(h<10?{k:'entrega',label:'Entrega de hoy',s:'info',st:'Muy temprano',d:'A las '+hora+' de Chile aún no se puede juzgar la entrega.'+ayer+ap,when:''}
+      :gHoy===0?{k:'entrega',label:'Entrega de hoy',s:'bad',st:'Sin gasto',d:'A las '+hora+' de Chile no ha gastado nada, con '+clp(ppto)+' al día. Si la tarjeta o un anuncio tienen un problema, Meta no muestra los anuncios.'+ayer+ap,when:''}
+      :gHoy<esp*.25?{k:'entrega',label:'Entrega de hoy',s:'warn',st:'Gasta poco',d:clp(gHoy)+' a las '+hora+' de Chile, frente a unos '+clp(esp)+' esperables a esa hora con '+clp(ppto)+' al día.'+ap,when:''}
+      :{k:'entrega',label:'Entrega de hoy',s:'ok',st:'Gastando',d:clp(gHoy)+' de '+clp(ppto)+' del día, a las '+hora+' de Chile.'+ap,when:''})}
+  return out}
+function health(M){const H=[],E=M.err||{},hr=hourCL(Date.now()),day=hr>=8&&hr<22;
+  // De día se actualiza cada 20 min; de noche (22:00 a 7:00 de Chile), cada hora. El margen va en proporción.
+  const genAge=(Date.now()-M.gen)/6e4,okMin=day?45:90,warnMin=day?120:180,sA=genAge<=okMin?'ok':genAge<=warnMin?'warn':'bad';
+  H.push({k:'auto',label:'Actualización automática',s:sA,st:sA==='ok'?'Funciona':sA==='warn'?'Con retraso':'Detenida',
+    d:'Los datos se actualizaron '+ago(M.gen)+'. De 8:00 a 22:00 (Chile) se actualizan cada 20 minutos; de noche, cada hora.',when:fWhen(M.gen)});
+  const src=(k,label,okTxt)=>E[k]?{k,label,s:'bad',st:'Falla',d:E[k],when:''}:(M[k==='hubspot'?'crm':k]?{k,label,s:'ok',st:'Funciona',d:okTxt,when:''}:{k,label,s:'bad',st:'Sin datos',d:'No llegaron datos en la última actualización.',when:''});
+  H.push(src('meta','Meta Ads','Inversión, leads, campañas y conjuntos leídos con el token de solo lectura.'));
+  H.push(...metaAlertas(M));
+  H.push(src('hubspot','HubSpot','Leads y negocios leídos sin datos personales.'));
+  H.push(src('ga4','Google Analytics','Tráfico de verticalgi.cl leído con la cuenta técnica de solo lectura.'));
+  H.push(M.uf?{k:'uf',label:'Valor de la UF',s:'ok',st:'Funciona',d:'UF del '+M.uf.fecha+': '+clp(M.uf.valor)+' (fuente: '+M.uf.fuente+').',when:''}:{k:'uf',label:'Valor de la UF',s:'warn',st:'Sin dato',d:'No se pudo leer la UF del día; el retorno queda en UF.',when:''});
+  if(M.crm){const R=M.crm.recent;
+    H.push({k:'asig',label:'Asignación a Claudia',s:R.n===0?'info':R.unassigned?'bad':'ok',st:R.n===0?'Sin leads nuevos':R.unassigned?'Falla':'Funciona',d:R.n===0?'No entraron leads de Meta en las últimas 48 h.':R.unassigned?int(R.unassigned)+' lead(s) de Meta de las últimas 48 h siguen sin propietario después de 30 min.':'Los '+int(R.n)+' leads de Meta de las últimas 48 h tienen propietario.',when:'Últimas 48 h'});
+    H.push(!M.capiDesde?{k:'capi',label:'Envío de etapas a Meta',s:'off',st:'Apagado',d:'La CAPI propia está apagada (falta la fecha de inicio en GitHub).',when:''}:{k:'capi',label:'Envío de etapas a Meta',s:R.capiMissing?'bad':'ok',st:R.capiMissing?'Falla':'Funciona',d:R.capiMissing?int(R.capiMissing)+' lead(s) con más de 40 min sin la etapa LEADS enviada.':'Encendida desde el '+fDay(M.capiDesde)+'. Los leads recientes tienen sus etapas enviadas.',when:''})}
+  if(M.meta&&M.crm){const a=M.meta.leads,b=M.crm.n+(M.crm.arch||0),s=a===0&&b===0?'info':(a>0&&b<a*.9)?'warn':'ok';
+    H.push({k:'sync',label:'Meta → HubSpot',s,st:s==='info'?'Sin leads':s==='warn'?'Revisar':'Funciona',d:a===0&&b===0?'Sin leads en el periodo.':'Meta informa '+int(a)+' leads y llegaron '+int(b)+' a HubSpot.'+(s==='warn'?' Faltan más del 10 %.':''),when:M.r.label})}
+  if(M.pixel){const s=age(M.pixel.browser,24,72);H.push({k:'pixel',label:'Píxel de la web',s,st:s==='ok'?'Funciona':s==='warn'?'Revisar':'Sin señal',d:'Última señal del navegador '+ago(M.pixel.browser)+'.',when:fWhen(M.pixel.browser)})}
+  H.push({k:'gtm',label:'Tag Manager',s:'info',st:'No se usa',d:'La web carga la etiqueta de Google y el script de HubSpot directamente.',when:''});
+  return H}
+
+/* ============ Piezas ============ */
+const tip=$('#tip');
+function showTip(ev,h){tip.innerHTML=h;tip.hidden=false;const w=tip.offsetWidth,ht=tip.offsetHeight;let x=ev.clientX+14,y=ev.clientY+14;if(x+w>innerWidth-8)x=ev.clientX-w-14;if(y+ht>innerHeight-8)y=ev.clientY-ht-14;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
+const hideTip=()=>{tip.hidden=true};
+const IC={money:'<path d="M2.5 5.5h11v6h-11z"/><circle cx="8" cy="8.5" r="1.6"/>',users:'<circle cx="6" cy="6" r="2.3"/><path d="M2 13c.6-2.2 2.2-3.3 4-3.3s3.4 1.1 4 3.3"/><circle cx="11.5" cy="6.5" r="1.8"/><path d="M11 10c1.6 0 2.7.9 3.1 2.6"/>',tag:'<path d="M2.5 8.2V3h5.2l6 6-5.2 5.2z"/><circle cx="5.3" cy="5.8" r="1"/>',star:'<path d="M8 2.3l1.7 3.6 3.9.4-2.9 2.7.8 3.9L8 11l-3.5 1.9.8-3.9L2.4 6.3l3.9-.4z"/>',check:'<circle cx="8" cy="8" r="5.6"/><path d="M5.6 8.2l1.7 1.7 3.2-3.4"/>',clock:'<circle cx="8" cy="8" r="5.6"/><path d="M8 4.8V8l2.2 1.4"/>',eye:'<path d="M1.8 8s2.3-4.3 6.2-4.3S14.2 8 14.2 8s-2.3 4.3-6.2 4.3S1.8 8 1.8 8z"/><circle cx="8" cy="8" r="1.8"/>',click:'<path d="M6 2.5v3M2.5 6h3M3.4 3.4l2 2"/><path d="M7.5 7.5l6 2-2.6 1-1 2.6z"/>',home:'<path d="M2.5 7.2L8 2.8l5.5 4.4V13H2.5z"/><path d="M6.5 13V9.5h3V13"/>',chart:'<path d="M2.5 13.5h11"/><path d="M4.5 11V8M8 11V5M11.5 11V7"/>',bolt:'<path d="M9 1.8L3.8 9h3.6L6.8 14.2 12.2 7H8.6z"/>',globe:'<circle cx="8" cy="8" r="5.6"/><path d="M2.4 8h11.2M8 2.4c1.6 1.7 2.4 3.6 2.4 5.6S9.6 11.9 8 13.6C6.4 11.9 5.6 10 5.6 8S6.4 4.1 8 2.4z"/>'};
+const svgI=k=>'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[k]+'</svg>';
+function delta(cur,prev,goodUp=true){if(!isN(cur)||!isN(prev)||prev===0)return'<span class="delta">sin comparación</span>';const c=(cur-prev)/Math.abs(prev);if(Math.abs(c)<.005)return'<span class="delta">igual</span>';const up=c>0,good=goodUp?up:!up;return'<span class="delta '+(good?'good':'bad')+'" title="Contra el periodo anterior">'+(up?'▲':'▼')+' '+pct(Math.abs(c),0)+'</span>'}
+function spark(vals,color){if(!vals||vals.length<2||vals.filter(v=>v>0).length<2)return''; /* con un solo día con datos, la línea es un pico sin información */const w=96,h=30,mx=Math.max(...vals,1);const pts=vals.map((v,i)=>[i*(w-2)/(vals.length-1)+1,h-3-(v/mx)*(h-7)]);const d='M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L');const id='s'+Math.random().toString(36).slice(2,8);
+  return'<svg class="spark" viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:'+color+';stop-opacity:.3"/><stop offset="1" style="stop-color:'+color+';stop-opacity:0"/></linearGradient></defs><path d="'+d+'L'+pts[pts.length-1][0].toFixed(1)+','+h+'L1,'+h+'Z" fill="url(#'+id+')"/><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
+function kpi(o){return'<article class="card kpi c-'+o.c+'"><div class="top"><span class="ico">'+svgI(o.i)+'</span><span class="lab">'+o.label+'</span>'+(o.help?'<button type="button" class="help" title="'+esc(o.help)+'" aria-label="'+esc(o.help)+'"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 4.9v.1" stroke-linecap="round"/></svg></button>':'')+'</div><div class="val">'+o.value+'</div><div class="row">'+(o.delta||'')+(o.spark||'')+'</div><div class="foot">'+(o.foot||'')+'</div></article>'}
+function hbars(items,{total=null,color='var(--line-2)',hi='var(--gold)'}={}){const L=items.filter(x=>x.n>0||x.always);if(!L.length)return'<div class="empty">Sin datos en el periodo</div>';const mx=Math.max(...L.map(x=>x.n),1),tot=total!=null?total:L.reduce((s,x)=>s+x.n,0);
+  return'<div class="hb">'+L.map(x=>'<div class="hb-row"><span class="hb-lab" title="'+esc(x.label)+'">'+esc(x.label)+'</span><span class="hb-track"><span class="hb-bar" style="width:'+(x.n/mx*100).toFixed(1)+'%;background:'+(x.color||(x.hi?hi:x.rest?'var(--line-2)':color))+'"></span></span><span class="hb-val">'+int(x.n)+(tot?' · '+pct(x.n/tot,0):'')+'</span></div>').join('')+'</div>'}
+function block(M,k,name){if(M[k])return null;const e=(M.err||{})[k==='crm'||k==='deals'?'hubspot':k];return'<div class="errbox"><b>'+name+'</b><span>'+(e?'No se pudo leer en la última actualización: '+esc(e):'Sin datos de '+name+' todavía.')+'</span></div>'}
+const STATUS={ACTIVE:['Activa','ok'],PAUSED:['Pausada','off'],CAMPAIGN_PAUSED:['Campaña pausada','off'],ADSET_PAUSED:['Conjunto pausado','off'],ARCHIVED:['Archivada','off'],DELETED:['Eliminada','off'],IN_PROCESS:['En revisión','warn'],WITH_ISSUES:['Con problemas','bad'],DISAPPROVED:['Rechazada','bad'],PENDING_REVIEW:['En revisión','warn']};
+const pill=s=>{const x=STATUS[s]||[s||'—','off'];return'<span class="pill '+x[1]+'"><i></i>'+esc(x[0])+'</span>'};
+
+/* Tablas ordenables */
+const TB={};
+function table(el,id,cols,rows,{def,dir=-1,empty='Sin filas en el periodo'}={}){if(!rows.length){el.innerHTML='<div class="empty">'+empty+'</div>';return}
+  const st=TB[id]||(TB[id]={k:def||cols[0].k,dir});const col=cols.find(c=>c.k===st.k)||cols[0];
+  const rs=rows.slice().sort((a,b)=>{const va=col.sv?col.sv(a):a[col.k],vb=col.sv?col.sv(b):b[col.k];if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return-1;return(typeof va==='string'?va.localeCompare(vb,'es'):va-vb)*st.dir});
+  el.innerHTML='<div class="tbl-wrap"><table><thead><tr>'+cols.map(c=>'<th class="'+(c.n?'n':'')+'" aria-sort="'+(c.k===st.k?(st.dir>0?'ascending':'descending'):'none')+'"><button type="button" data-k="'+c.k+'">'+c.label+'</button></th>').join('')+'</tr></thead><tbody>'+rs.map(r=>'<tr>'+cols.map(c=>'<td class="'+(c.n?'n':'')+'">'+c.f(r)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+  $$('th button',el).forEach(b=>b.addEventListener('click',()=>{if(st.k===b.dataset.k)st.dir*=-1;else{st.k=b.dataset.k;st.dir=-1}table(el,id,cols,rows,{def,dir,empty})}))}
+
+/* Gráficos */
+function combo(el,rows,{bar,barLabel,barColor,barFmt,lines,rightFmt=int,h=260,vacio='Sin datos en el periodo'}){el.innerHTML='';if(!rows.length){el.innerHTML='<div class="empty">Sin días en el periodo</div>';return}
+  // Sin ningún valor en el periodo, un eje de 0 a 1 solo enseña marcas repetidas: mejor decirlo.
+  if(!rows.some(r=>(r[bar]||0)>0||lines.some(l=>(r[l.key]||0)>0))){el.innerHTML='<div class="empty">'+vacio+'</div>';return}
+  // Marcas del eje sin repetidos: con máximos pequeños, 0,25 y 0,5 se redondean al mismo texto.
+  const ticksUnicos=(sc,fmt)=>{const vistos=new Set();return sc.ticks(4).filter(v=>{const k=fmt(v);if(vistos.has(k))return false;vistos.add(k);return true})};
+  const W=Math.max(320,el.clientWidth||700),H=h,mg={t:14,r:50,b:28,l:62};
+  const x=d3.scaleBand().domain(rows.map(r=>r.d)).range([mg.l,W-mg.r]).paddingInner(rows.length>60?.15:.3).paddingOuter(.1);
+  const yL=d3.scaleLinear().domain([0,d3.max(rows,r=>r[bar])||1]).nice(4).range([H-mg.b,mg.t]);
+  const yR=d3.scaleLinear().domain([0,d3.max(rows,r=>d3.max(lines,l=>r[l.key]||0))||1]).nice(4).range([H-mg.b,mg.t]);
+  const svg=d3.select(el).append('svg').attr('width','100%').attr('viewBox','0 0 '+W+' '+H);
+  const tL=ticksUnicos(yL,barFmt),tR=ticksUnicos(yR,rightFmt);
+  svg.append('g').attr('transform','translate('+mg.l+',0)').call(d3.axisLeft(yL).tickValues(tL).tickSize(-(W-mg.l-mg.r)).tickFormat('')).call(g=>{g.select('.domain').remove();g.selectAll('line').attr('stroke','var(--grid)')});
+  svg.append('g').attr('transform','translate('+(mg.l-8)+',0)').call(d3.axisLeft(yL).tickValues(tL).tickSize(0).tickFormat(barFmt)).call(g=>g.select('.domain').remove()).attr('font-size',null).attr('font-family',null);
+  svg.append('g').attr('transform','translate('+(W-mg.r+8)+',0)').call(d3.axisRight(yR).tickValues(tR).tickSize(0).tickFormat(rightFmt)).call(g=>g.select('.domain').remove()).attr('font-size',null).attr('font-family',null);
+  const every=Math.max(1,Math.ceil(rows.length/Math.max(2,Math.floor((W-mg.l-mg.r)/64))));
+  svg.append('g').attr('transform','translate(0,'+(H-mg.b+8)+')').call(d3.axisBottom(x).tickSize(0).tickValues(rows.map(r=>r.d).filter((d,i)=>i%every===0)).tickFormat(fDay)).call(g=>g.select('.domain').remove()).attr('font-size',null).attr('font-family',null).selectAll('text').attr('dy','.8em');
+  svg.append('g').selectAll('rect').data(rows).join('rect').attr('x',r=>x(r.d)).attr('width',x.bandwidth()).attr('y',r=>yL(r[bar]||0)).attr('height',r=>Math.max(0,yL(0)-yL(r[bar]||0))).attr('rx',Math.min(4,x.bandwidth()/2)).attr('fill',barColor).attr('fill-opacity',.85);
+  lines.forEach(l=>{svg.append('path').datum(rows).attr('d',d3.line().defined(r=>isN(r[l.key])).x(r=>x(r.d)+x.bandwidth()/2).y(r=>yR(r[l.key]||0))).attr('fill','none').attr('stroke',l.color).attr('stroke-width',2.2).attr('stroke-linecap','round').attr('stroke-linejoin','round');
+    if(rows.length<=45)svg.append('g').selectAll('circle').data(rows.filter(r=>isN(r[l.key]))).join('circle').attr('cx',r=>x(r.d)+x.bandwidth()/2).attr('cy',r=>yR(r[l.key]||0)).attr('r',2.6).attr('fill',l.color)});
+  const hl=svg.append('rect').attr('fill','var(--fg)').attr('fill-opacity',0).attr('pointer-events','none');
+  svg.append('g').selectAll('rect').data(rows).join('rect').attr('x',r=>x(r.d)-x.step()*x.paddingInner()/2).attr('width',x.step()).attr('y',mg.t).attr('height',H-mg.t-mg.b).attr('fill','transparent')
+    .on('mousemove',(ev,r)=>{hl.attr('x',x(r.d)-x.step()*x.paddingInner()/2).attr('width',x.step()).attr('y',mg.t).attr('height',H-mg.t-mg.b).attr('fill-opacity',.05);
+      showTip(ev,'<div class="t">'+fDay(r.d)+' '+r.d.slice(0,4)+'</div><div class="r"><span><i style="background:'+barColor+'"></i>'+barLabel+'</span><b>'+barFmt(r[bar]||0)+'</b></div>'+lines.map(l=>'<div class="r"><span><i style="background:'+l.color+'"></i>'+l.label+'</span><b>'+(l.fmt||int)(r[l.key])+'</b></div>').join(''))})
+    .on('mouseleave',()=>{hl.attr('fill-opacity',0);hideTip()})}
+function sankey(el,flow){el.innerHTML='';if(!flow||!flow.total){el.innerHTML='<div class="empty">Sin leads de Meta en el periodo</div>';return}
+  const COL={'Leads':'var(--indigo)','MQL':'var(--gold)','Renta bajo $1,8 MM':'var(--off)','Sin renta':'var(--line-2)','Sin gestionar':'var(--warn)','Intentando contactar':'var(--violet)','Contactado':'var(--teal)','SQL':'var(--ok)','No califica':'var(--bad)','Otro estado':'var(--fg-3)'};
+  const order=Object.keys(COL);const names=[...new Set(flow.links.flatMap(l=>[l.a,l.b]))].sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+  if(!(window.d3&&d3.sankey)){el.innerHTML=hbars(flow.links.filter(l=>l.a==='Leads').map(l=>({label:l.b,n:l.v,hi:l.b==='MQL'})));return}
+  const W=Math.max(320,el.clientWidth||600),H=Math.max(250,Math.min(380,100+names.length*24)),rM=Math.min(170,Math.max(118,W*.27));
+  const g=d3.sankey().nodeId(d=>d.id).nodeWidth(12).nodePadding(12).nodeSort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id)).extent([[1,6],[W-rM,H-6]])({nodes:names.map(id=>({id})),links:flow.links.map(l=>({source:l.a,target:l.b,value:l.v}))});
+  const svg=d3.select(el).append('svg').attr('width','100%').attr('viewBox','0 0 '+W+' '+H);
+  svg.append('g').selectAll('path').data(g.links).join('path').attr('class','lk').attr('d',d3.sankeyLinkHorizontal()).attr('stroke',d=>COL[d.target.id]).attr('stroke-width',d=>Math.max(1.5,d.width))
+    .on('mousemove',(ev,d)=>showTip(ev,'<div class="t">'+esc(d.source.id)+' → '+esc(d.target.id)+'</div><div class="r"><span>Leads</span><b>'+int(d.value)+' · '+pct(d.value/flow.total,0)+'</b></div>')).on('mouseleave',hideTip);
+  const nd=svg.append('g').selectAll('g').data(g.nodes).join('g');
+  nd.append('rect').attr('x',d=>d.x0).attr('y',d=>d.y0).attr('height',d=>Math.max(2,d.y1-d.y0)).attr('width',d=>d.x1-d.x0).attr('rx',3).attr('fill',d=>COL[d.id]);
+  const t=nd.append('text').attr('class','nl').attr('x',d=>d.x1+7).attr('y',d=>(d.y0+d.y1)/2).attr('dy','.35em');t.append('tspan').text(d=>d.id+' ');t.append('tspan').attr('class','c').text(d=>int(d.value))}
+function funnel(steps){const base=steps[0]&&steps[0].n;if(!base)return'<div class="empty">Sin leads en el periodo</div>';const mx=Math.max(...steps.map(s=>s.n),1);let worst=-1,wi=-1;
+  steps.forEach((s,i)=>{if(i&&steps[i-1].n){const l=1-s.n/steps[i-1].n;if(l>worst){worst=l;wi=i}}});
+  return'<div class="funnel">'+steps.map((s,i)=>(i?'<div class="f-conv"><span>↓ '+pct(div(s.n,steps[i-1].n),0)+' pasa</span>'+(i===wi&&worst>0?'<span class="drop">mayor caída</span>':'')+'</div>':'')+'<div class="f-row"><span class="f-lab">'+s.label+(s.sub?'<small>'+s.sub+'</small>':'')+'</span><span class="f-track"><span class="f-bar" style="width:'+(s.n/mx*100).toFixed(1)+'%;background:'+s.color+'"></span></span><span class="f-val">'+int(s.n)+'</span></div>').join('')+'</div>'}
+
+/* ============ Render ============ */
+function renderAll(){const M=S.M;if(!M)return;$$('[data-range]').forEach(e=>e.textContent=M.r.label);
+  renderHero(M);renderStatus(M);renderAlerta(M);renderHoyAyer(M);renderLectura(M);renderResumen(M);renderCplMax(M);renderMeta(M);renderCrm(M);renderDeals(M);renderWeb(M);renderSalud(M);renderAdmin(M)}
+// Coste por lead histórico de los formularios de Meta de la cuenta (ago-2024 a feb-2026, análisis del 06-oct):
+// la referencia con el mismo objetivo para leer el coste actual.
+const CPL_REF=968;
+const plural=(n,uno,varios)=>int(n)+' '+(n===1?uno:varios);
+function renderAlerta(M){const malos=M.health.filter(h=>['cuenta','anuncios','entrega'].includes(h.k)&&h.s==='bad'),el=$('#alerta');
+  el.hidden=!malos.length;if(!malos.length)return;
+  el.innerHTML='<span class="ic" aria-hidden="true">!</span><div><b>La campaña no se está mostrando con normalidad.</b> '+malos.map(h=>esc(h.label)+': '+esc(h.d)).join(' ')+'</div>'}
+function renderLectura(M){const m=M.meta,c=M.crm,x=M.cross,L=[];const li=(t,cl)=>L.push('<li'+(cl?' class="'+cl+'"':'')+'>'+t+'</li>');
+  M.health.filter(h=>['cuenta','anuncios','entrega'].includes(h.k)&&h.s==='bad').forEach(h=>li('<b>Atención:</b> '+esc(h.label.toLowerCase())+', '+esc(h.st.toLowerCase())+'. El detalle está en el aviso de arriba.','mal'));
+  if(!m)li('Meta no respondió en la última actualización: faltan las cifras de pauta.','mal');
+  else if(!m.spend)li('No hubo inversión en Meta en el periodo.');
+  else if(!m.leadsN)li('Se invirtieron <b>'+clp(m.spend)+'</b> en Meta y todavía no entró ningún lead ('+plural(m.impr,'impresión','impresiones')+' y '+plural(m.clicks,'clic','clics')+').');
+  else{const d=(m.cpl-CPL_REF)/CPL_REF,cmp=Math.abs(d)<.05?'en línea con':'un <b>'+pct(Math.abs(d),0)+(d<0?' más barato':' más caro')+'</b> que';
+    li('Se invirtieron <b>'+clp(m.spend)+'</b> en Meta y entraron <b>'+int(m.leadsN)+'</b> '+(m.leadsN===1?'lead':'leads')+', a <b>'+clp(m.cpl)+'</b> cada uno: '+cmp+' el histórico de formularios de la cuenta ('+clp(CPL_REF)+').'+(m.cplHs?' Cuento los que ya llegaron a HubSpot: Meta todavía informa '+int(m.leads)+' porque actualiza sus cifras con retraso. Si no se iguala en unas horas, la diferencia pueden ser leads del formulario que no vinieron del anuncio.':''),d<-.05?'bien':d>.05?'mal':'')}
+  if(m&&m.leadsN&&M.uf){const B=cplMaxBase(M);
+    if(B.tasa!=null){const ok=B.cpl<=B.tope,lim=B.cpl<=B.max;li('Con un '+pct(B.tasa,1)+' de leads que llegan a SQL, lo máximo prudente por lead es <b>'+clp(B.tope)+'</b> (sin margen, '+clp(B.max)+'): el costo actual está en <b>'+(ok?'«Escalar»':lim?'«Al límite»':'«Perdiendo»')+'</b>.',ok?'bien':lim?'':'mal')}
+    else li(B.nTope>=1?'A ese costo por lead, para ir con un '+pct(MARGEN_SEGURIDAD,0)+' de margen basta con que <b>1 de cada '+int(B.nTope)+'</b> leads llegue a SQL, si de cada 5 SQL sale una escritura, como supone el pipeline de HubSpot.':'A ese costo por lead, ni con todos los leads en SQL queda margen.',B.nTope>=1?'':'mal')}
+  if(m){const u=div(m.monthSpend,PRESUPUESTO_MENSUAL);li('Este mes van <b>'+clp(m.monthSpend)+'</b> de los '+clp(PRESUPUESTO_MENSUAL)+' de pauta ('+(u>0&&u<.01?'menos del 1 %':pct(u,0))+').')}
+  if(c&&c.n){li((c.n===1?(c.arch?'Del único lead que sigue en HubSpot, ':'Del único lead que llegó a HubSpot, '):'De los <b>'+int(c.n)+'</b> leads que '+(c.arch?'siguen en HubSpot (sin contar '+plural(c.arch,'archivado','archivados')+'), ':'llegaron a HubSpot, '))+'<b>'+int(c.mql)+'</b> '+(c.mql===1?'es':'son')+' MQL ('+pct(div(c.mql,c.n),0)+')'+(c.noMql?', <b>'+int(c.noMql)+'</b> no (renta bajo $1,8 MM)':'')+' y <b>'+int(c.sql)+'</b> '+(c.sql===1?'llegó':'llegaron')+' a SQL'+(x&&isN(x.cpmql)&&c.mql?(c.mql===1?'. Ese MQL costó <b>'+clp(x.cpmql)+'</b>: toda la inversión del periodo, porque es el único.':'. Cada MQL costó <b>'+clp(x.cpmql)+'</b>: hacen falta unos '+int(Math.round(c.n/c.mql))+' leads para conseguir uno.'):'.'));
+    const sin=c.n-c.gest;li(sin?'<b>'+int(sin)+'</b> '+(sin>1?'siguen':'sigue')+' sin primera gestión en HubSpot.':'Todos tienen ya su primera gestión en HubSpot.',sin?'':'bien')}
+  else if(c&&m&&m.leads)li('Ninguno de esos leads aparece todavía en HubSpot.','mal');
+  $('#lectura').innerHTML=L.join('')}
+const hhCL=ms=>new Intl.DateTimeFormat('es-CL',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(ms));
+function renderHoyAyer(M){const gd=dayCL(M.gen),hora=hhCL(M.gen);
+  // Cada columna dice hasta cuándo llegan sus datos: de noche no hay actualizaciones.
+  const C=M.ha.map(x=>({...x,est:gd===x.d?'hasta las '+hora:gd>x.d?'día completo':'sin datos todavía',vacio:gd<x.d}));
+  // Leads: el mayor entre lo que informa Meta y lo que ya llegó a HubSpot, como en las tarjetas; si Meta va con retraso, se dice.
+  const F=[['Inversión',x=>x.meta?clp(x.meta.spend):'—'],['Leads',x=>x.leadsN==null?'—':int(x.leadsN)+(x.meta&&x.meta.leads<x.leadsN?'<small class="ha-n">Meta informa '+int(x.meta.leads)+'</small>':'')],['Costo por lead',x=>x.cpl!=null?clp(x.cpl):'—'],['MQL',x=>x.hs?int(x.hs.mql):'—']];
+  $('#hoyayer').innerHTML='<div role="table" aria-label="Hoy y ayer"><div class="ha-r ha-h" role="row"><span role="columnheader"></span>'+C.map((x,i)=>'<span role="columnheader"><b>'+(i?'Ayer':'Hoy')+'</b><small>'+fDay(x.d)+' · '+x.est+'</small></span>').join('')+'</div>'+
+    F.map(([l,f])=>'<div class="ha-r" role="row"><span role="rowheader">'+l+'</span>'+C.map(x=>'<span role="cell">'+(x.vacio?'—':f(x))+'</span>').join('')+'</div>').join('')+'</div>'}
+// Negocio nuevo, sin historial de ventas: se parte de lo que sí se conoce.
+// Comisión mínima (60 UF, para no contar con la mejor venta) × probabilidad de cierre de «Calificado» en el
+// pipeline de HubSpot (20 %, la del playbook) = lo máximo que puede costar un SQL sin perder dinero.
+// El costo por lead máximo = ese máximo × % de leads que llegan a SQL, que se mide en días, no en meses.
+// Tope prudente = máximo × (1 − margen de seguridad). Cuando haya escrituras de leads con al menos 90 días,
+// el 20 % se sustituye por la tasa real.
+const MARGEN_SEGURIDAD=.3,P_CIERRE_SQL=STAGES[0].p;
+const SQL_ESC=[10,20,50,100,200,500];
+function cplMaxBase(M){const ufv=M.uf&&M.uf.valor,m=M.meta,c=M.crm;if(!ufv)return null;
+  const com=COMISION_UF[0]*ufv,maxSql=com*P_CIERRE_SQL,topeSql=maxSql*(1-MARGEN_SEGURIDAD),real=m&&m.leadsN?m.cpl:null,cpl=real||CPL_REF;
+  const n=c?c.n:0,sql=c?c.sql:0,tasa=n&&sql?sql/n:null;
+  return{com,maxSql,topeSql,cpl,real,n,sql,tasa,max:tasa!=null?maxSql*tasa:null,tope:tasa!=null?topeSql*tasa:null,nMax:Math.floor(maxSql/cpl),nTope:Math.floor(topeSql/cpl)}}
+function renderCplMax(M){const el=$('#cplmax'),B=cplMaxBase(M);
+  if(!B){el.innerHTML='<div class="empty">Falta la UF del día.</div>';return}
+  const mg=pct(MARGEN_SEGURIDAD,0),v=(max,tope)=>B.cpl<=tope?['ok','Escalar']:B.cpl<=max?['warn','Al límite']:['bad','Perdiendo'];
+  const cplTxt=B.real?'el costo por lead del periodo ('+clp(B.cpl)+')':'el costo por lead histórico de la cuenta ('+clp(B.cpl)+'), porque en el periodo no hay leads';
+  const chain='<div class="stats">'+
+    '<div class="stat"><b>'+clp(B.com)+'</b><span>Comisión por venta (60 UF, la más baja que dio el cliente)</span></div>'+
+    '<div class="stat"><b>× '+pct(P_CIERRE_SQL,0)+'</b><span>De SQL a escritura, según la probabilidad de «Calificado» en el pipeline de HubSpot</span></div>'+
+    '<div class="stat"><b>'+clp(B.maxSql)+'</b><span>Máximo por SQL · tope prudente '+clp(B.topeSql)+'</span></div>'+
+    '<div class="stat"><b>'+(B.tasa!=null?clp(B.max):'Falta dato')+'</b><span>'+(B.tasa!=null?'Máximo por lead, con un '+pct(B.tasa,1)+' de leads en SQL · tope prudente '+clp(B.tope):'Máximo por lead: falta el % de leads que llegan a SQL ('+(B.n?int(B.sql)+' SQL de '+plural(B.n,'lead','leads'):'sin leads')+' en el periodo)')+'</span></div></div>';
+  let head;
+  if(B.tasa!=null){const s=v(B.max,B.tope);
+    head='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="big">'+clp(B.tope)+'</span><span class="pill '+s[0]+'" style="font-size:13px;padding:5px 12px"><i></i>'+s[1]+'</span><span class="note" style="font-size:13px;max-width:40rem">es lo máximo prudente por lead con el '+pct(B.tasa,1)+' de leads que hoy llega a SQL (sin margen, '+clp(B.max)+'). Se compara con '+cplTxt+'.</span></div>'}
+  else head='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="big">'+(B.nTope>=1?'1 de cada '+int(B.nTope):'Ninguno')+'</span><span class="note" style="font-size:13px;max-width:44rem">'+(B.nTope>=1?'leads tiene que llegar a SQL para que la pauta deje un '+mg+' de margen, con '+cplTxt+'. Sin margen: 1 de cada '+int(B.nMax)+'.':'Con '+cplTxt+', ni con todos los leads en SQL queda el margen.')+'</span></div>';
+  el.innerHTML=head+(B.n&&B.n<30?'<div class="pend" style="margin-top:12px">Con '+plural(B.n,'lead','leads')+' en el periodo, el % que llega a SQL todavía puede moverse mucho. Además, los leads de los últimos días aún pueden pasar a SQL: al principio, el % sale más bajo de lo que será.</div>':'')+
+    '<div style="margin-top:16px">'+chain+'</div>'+
+    '<div class="tbl-wrap cplmax" style="margin-top:16px"><table><thead><tr><th>Si llega a SQL 1 de cada…</th><th class="n">Máximo por lead</th><th class="n">Tope prudente (−'+mg+')</th><th>A '+clp(B.cpl)+' por lead</th></tr></thead><tbody>'+
+    SQL_ESC.map(n=>{const s=v(B.maxSql/n,B.topeSql/n);return'<tr><td><span class="nm">'+int(n)+' leads</span><span class="sm">'+pct(1/n,1)+' de los leads</span></td><td class="n">'+clp(B.maxSql/n)+'</td><td class="n">'+clp(B.topeSql/n)+'</td><td><span class="pill '+s[0]+'"><i></i>'+s[1]+'</span></td></tr>'}).join('')+'</tbody></table></div>'+
+    '<p class="note" style="margin-top:10px"><b>Escalar:</b> por debajo del tope prudente. <b>Al límite:</b> entre el tope y el máximo; la pauta se paga, pero sin margen. <b>Perdiendo:</b> por encima del máximo. Con 160 UF por venta, cada máximo se multiplica por 2,7. Cuando haya escrituras de leads con al menos 90 días, el '+pct(P_CIERRE_SQL,0)+' se cambia por la tasa real.</p>'}
+function renderHero(M){const age=(Date.now()-M.gen)/6e4,hr=hourCL(Date.now()),day=hr>=8&&hr<22;const s=age<=(day?45:90)?'ok':age<=(day?120:180)?'warn':'bad';
+  $('#fresh').dataset.s=s;$('#fresh-t').textContent='Datos '+ago(M.gen);$('#foot-gen').textContent='Última actualización: '+fWhen(M.gen)+(M.uf?' · UF '+clp(M.uf.valor):'');
+  const uc=$('#uf-chip');uc.hidden=!M.uf;if(M.uf){$('#uf-v').textContent='$'+new Intl.NumberFormat('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2}).format(M.uf.valor);uc.title='Valor de la UF del '+fDay(M.uf.fecha)+' '+M.uf.fecha.slice(0,4)+' (fuente: '+M.uf.fuente+')'}
+  const m=M.meta,c=M.crm;
+  $('#hero-lead').innerHTML=esc(M.r.label)+' · '+(m?'<b>'+clp(m.spend)+'</b> invertidos, <b>'+int(m.leadsN)+'</b> '+(m.leadsN===1?'lead':'leads'):'Meta sin datos')+(c?', <b>'+int(c.mql)+'</b> MQL y <b>'+int(c.sql)+'</b> SQL':'')+'.'}
+function paceInfo(M){const m=M.meta;if(!m)return null;const t=today(),dim=new Date(Date.UTC(+t.slice(0,4),+t.slice(5,7),0)).getUTCDate(),day=+t.slice(8,10),sp=m.monthSpend,proj=sp/day*dim;
+  return{dim,day,sp,proj,ideal:PRESUPUESTO_MENSUAL*day/dim,st:proj>PRESUPUESTO_MENSUAL*1.05?['Por encima','warn']:(proj<PRESUPUESTO_MENSUAL*.8&&day>3)?['Por debajo','info']:['A ritmo','ok']}}
+// Casillas que no son comprobaciones del sistema, sino el estado del negocio de cada pestaña.
+// Rojo y amarillo solo con un criterio objetivo; la gestión de los leads va en gris, como dato.
+function extraTiles(M){const X=[],m=M.meta,c=M.crm,D=M.deals,ES=m&&m.estado,t=(k,label,s,st,d)=>X.push({k,label,s,st,d});
+  const P=paceInfo(M);
+  if(P)t('ritmo','Ritmo del presupuesto',P.st[1],P.st[0],'Este mes van '+clp(P.sp)+' de '+clp(PRESUPUESTO_MENSUAL)+'; a este ritmo, '+clp(P.proj)+' a fin de mes.');
+  else t('ritmo','Ritmo del presupuesto','off','Sin datos','Meta no respondió en la última actualización.');
+  const B=cplMaxBase(M);
+  if(!B)t('cpl','Costo por lead','off','Sin UF','Falta la UF del día para calcular el máximo.');
+  else if(!(m&&m.leadsN))t('cpl','Costo por lead','info','Sin leads','No hubo leads de Meta en el periodo.');
+  else if(B.tasa!=null){const s=B.cpl<=B.tope?['ok','Escalar']:B.cpl<=B.max?['warn','Al límite']:['bad','Perdiendo'];
+    t('cpl','Costo por lead',s[0],s[1]+' · '+clp(B.cpl),'Tope prudente '+clp(B.tope)+' y máximo '+clp(B.max)+' por lead, con el '+pct(B.tasa,1)+' de leads en SQL ('+plural(B.n,'lead','leads')+').')}
+  else t('cpl','Costo por lead','info',clp(B.cpl)+' · falta % a SQL','A este costo basta con que 1 de cada '+int(B.nTope)+' leads llegue a SQL para ir con margen.');
+  const CJ=ES&&ES.conjuntos?ES.conjuntos.filter(s=>s.estado==='ACTIVE'):null,conv=CJ?CJ.reduce((a,s)=>a+(s.conversiones||0),0):0;
+  if(!CJ)t('aprendizaje','Fase de aprendizaje','off','Sin dato','No se pudo leer el estado de los conjuntos.');
+  else if(!CJ.length)t('aprendizaje','Fase de aprendizaje','off','Sin conjuntos activos','No hay conjuntos activos.');
+  else if(CJ.some(s=>s.aprendizaje==='FAIL'))t('aprendizaje','Fase de aprendizaje','warn','Aprendizaje limitado','Meta no consigue resultados suficientes para terminar la fase de aprendizaje.');
+  else if(CJ.some(s=>s.aprendizaje==='LEARNING'))t('aprendizaje','Fase de aprendizaje','info','Aprendiendo · '+plural(conv,'resultado','resultados'),'Meta sigue aprendiendo; según Meta, sale de esta fase con unos 50 resultados en 7 días.');
+  else t('aprendizaje','Fase de aprendizaje','ok','Completada','Los conjuntos activos ya salieron de la fase de aprendizaje.');
+  if(c){const tot=c.n+(c.arch||0);t('caidos','Caídos','info',plural(c.caidos,'lead','leads')+(tot?' · '+pct(div(c.caidos,tot),0):''),'Leads del periodo descartados antes de SQL («No califica» y estados antiguos de descarte).'+(c.arch?' Además, '+plural(c.arch,'archivado','archivados')+' en HubSpot.':''));
+    t('singest','Sin primera gestión','info',plural(c.sinGest,'lead','leads'),'Leads del periodo todavía en «Nuevo» o sin estado.');
+    t('ncsinmot','«No califica» sin motivo','info',c.ncN?int(c.ncSinMotivo)+' de '+int(c.ncN):'Ninguno','Sin el motivo no se sabe qué ajustar en el anuncio o el formulario.')}
+  if(D){const ufv=M.uf&&M.uf.valor,inv=m?m.spend:0,cob=ufv?D.cobUF*ufv:null,roi=D.wonR&&cob!=null&&inv?(cob-inv)/inv:null,tot=D.rows.filter(d=>!d.lost).length,falta=tot-D.rows.filter(d=>!d.lost&&d.uf&&d.pc).length;
+    t('abiertos','Negocios abiertos','info',int(D.open)+(D.open?' · '+ufR(D.juego):''),'Comisión en juego si se escrituran los negocios abiertos.');
+    t('negdatos','Valor y comisión','info',!tot?'Sin negocios':falta?int(falta)+' de '+int(tot)+' sin datos':'Completos','Negocios sin «Valor de la propiedad (UF)» o «Comisión (%)» en HubSpot: su comisión se estima entre 60 y 160 UF.');
+    t('retorno','Retorno de la pauta','info',roi!=null?pct(roi,0):D.wonR?plural(D.wonR,'escritura','escrituras'):'Sin escrituras','(Comisión cobrada − pauta) ÷ pauta, en el periodo.')}
+  return X}
+const TAB_ST={resumen:['De un vistazo',['entrega','ritmo','cpl','sync']],meta:['Estado de Meta Ads',['cuenta','anuncios','entrega','aprendizaje','cpl']],
+  crm:['Estado de los leads',['sync','asig','capi','caidos','singest','ncsinmot']],negocios:['Estado de los negocios',['abiertos','negdatos','retorno']],web:['Estado de la web',['ga4','pixel']]};
+function renderStatus(M){const H=M.health,all=[...H,...extraTiles(M)],ic={ok:'✓',warn:'!',bad:'✕',off:'–',info:'i'},sys=new Set(H.map(h=>h.k));
+  // Las comprobaciones del sistema llevan a Salud, donde está su detalle.
+  const tile=(h,go)=>go?'<button type="button" class="tile" data-s="'+h.s+'" data-go="salud" title="'+esc(h.d)+'"><span class="ic">'+ic[h.s]+'</span><span><b>'+esc(h.label)+'</b><small>'+esc(h.st)+'</small></span></button>'
+    :'<div class="tile" data-s="'+h.s+'" title="'+esc(h.d)+'"><span class="ic">'+ic[h.s]+'</span><span><b>'+esc(h.label)+'</b><small>'+esc(h.st)+'</small></span></div>';
+  const badge=(L,okTxt)=>{const b=L.filter(h=>h.s==='bad').length,w=L.filter(h=>h.s==='warn').length;return'<span class="badge '+(b?'bad':w?'warn':'ok')+'">'+(b?b+(b>1?' fallos':' fallo'):w?w+(w>1?' avisos':' aviso'):okTxt)+'</span>'};
+  Object.entries(TAB_ST).forEach(([id,[tit,keys]])=>{const L=keys.map(k=>all.find(h=>h.k===k)).filter(Boolean);
+    $('[data-st="'+id+'"]').innerHTML='<div class="status-h"><h2>'+tit+' '+badge(L,'Sin avisos')+'</h2></div><div class="tiles">'+L.map(h=>tile(h,sys.has(h.k)&&id!=='salud')).join('')+'</div>'});
+  const n=H.filter(h=>h.s==='bad'||h.s==='warn').length,c=$('#salud-cnt');c.hidden=!n;c.textContent=n;
+  // Salud: todas las comprobaciones. En el móvil, solo las que tienen algún problema; el botón despliega todas.
+  const sal=$('[data-st="salud"]');sal.classList.toggle('compacto',!S.verTodo);
+  sal.innerHTML='<div class="status-h"><h2>Estado del sistema '+badge(H,'Todo funciona')+'</h2><div class="legend-s"><span><i style="background:var(--ok)"></i>Funciona</span><span><i style="background:var(--warn)"></i>Revisar</span><span><i style="background:var(--bad)"></i>Falla</span><span><i style="background:var(--off)"></i>Apagado o informativo</span></div></div>'+
+    '<div class="tiles">'+H.filter(h=>h.k!=='gtm').map(h=>tile(h,false)).join('')+'</div><button type="button" class="ver-todo" id="ver-todo" aria-expanded="'+!!S.verTodo+'">'+(S.verTodo?'Ver solo lo que falla':n?'Ver las '+H.length+' comprobaciones':'Todo funciona · ver las '+H.length+' comprobaciones')+'</button>'}
+// Cómo quedan los leads del periodo: en curso, en SQL, caídos o archivados.
+function quedan(M){const c=M.crm,D=M.deals;if(!c)return'';const ar=c.arch||0,tot=c.n+ar;if(!tot)return'';
+  const cur=c.n-c.sql-c.caidos,seg=[['En curso',cur,'var(--indigo)'],['SQL',c.sql,'var(--ok)'],['Caídos',c.caidos,'var(--bad)'],...(ar?[['Archivados',ar,'var(--off)']]:[])];
+  const mot=c.motivos.filter(x=>x.n).sort((a,b)=>b.n-a.n).slice(0,4).map(x=>esc(x.label)+' '+int(x.n)).join(' · ');
+  return'<div class="quedan"><h4>Cómo quedan hoy</h4><div class="stack" role="img" aria-label="'+seg.map(s=>s[0]+' '+s[1]).join(', ')+'">'+seg.filter(s=>s[1]>0).map(s=>'<span style="width:'+(s[1]/tot*100).toFixed(1)+'%;background:'+s[2]+'"></span>').join('')+'</div>'+
+    '<div class="stack-l">'+seg.map(s=>'<span><i style="background:'+s[2]+'"></i>'+s[0]+' <b>'+int(s[1])+'</b> · '+pct(s[1]/tot,0)+'</span>').join('')+'</div>'+
+    (c.caidos&&mot?'<p>Motivos de los caídos: '+mot+'.</p>':'')+(D&&D.lostR?'<p>Después de SQL: '+plural(D.lostR,'negocio perdido','negocios perdidos')+' de los creados en el periodo.</p>':'')+
+    (c.arch==null?'<p>No se pudieron leer los archivados de HubSpot en la última actualización.</p>':'')+'</div>'}
+function renderResumen(M){const m=M.meta,c=M.crm,x=M.cross;
+  $('#kpis').innerHTML=[
+    kpi({c:'gold',i:'money',label:'Inversión',value:m?clp(m.spend):'—',delta:m?delta(m.spend,m.prev.spend,true):'',spark:m?spark(m.days.map(d=>d.spend),'var(--gold)'):'',foot:m?'Este mes '+clpC(m.monthSpend)+' de '+clpC(PRESUPUESTO_MENSUAL):''}),
+    kpi({c:'indigo',i:'users',label:'Leads',value:m?int(m.leadsN):'—',delta:m?delta(m.leadsN,m.prev.leads,true):'',spark:m?spark(m.days.map(d=>d.leads),'var(--indigo)'):'',foot:m&&m.cplHs?'Meta aún informa '+int(m.leads)+'; en HubSpot ya hay '+int(m.leadsN):c?'Llegaron a HubSpot: '+int(c.n+(c.arch||0)):'',help:'Leads de los formularios de Meta. Meta los cuenta con retraso: si a HubSpot ya llegaron más, se usan esos.'}),
+    kpi({c:'coral',i:'tag',label:'Costo por lead',value:m?clp(m.cpl):'—',delta:m?delta(m.cpl,m.pcpl,false):'',foot:m?(m.cplHs?'Con los leads de HubSpot · ':'')+plural(m.clicks,'clic','clics')+' · CTR '+pct(m.ctr,2):''}),
+    kpi({c:'grey',i:'users',label:'No califica',value:c?int(c.nc):'—',delta:c?delta(c.nc,c.prev.nc,false):'',foot:c?int(c.noMql)+' con renta bajo $1,8 MM según el formulario'+(c.sinRenta?' · '+plural(c.sinRenta,'lead','leads')+' sin renta':''):'',help:'Leads que Claudia marcó «No califica» en HubSpot. La renta del formulario no descarta a nadie: es el criterio de MQL.'}),
+    kpi({c:'teal',i:'star',label:'MQL',value:c?int(c.mql):'—',delta:c?delta(c.mql,c.prev.mql,true):'',spark:c&&m?spark(m.days.map(d=>(c.dailyHs[d.d]||{}).mql||0),'var(--teal)'):'',foot:c?pct(div(c.mql,c.n),0)+' de los leads'+(x&&c.mql?' · '+(c.mql===1?'costó ':'')+clp(x.cpmql)+(c.mql===1?'':' c/u'):''):'',help:'Renta líquida desde $1,8 MM.'}),
+    kpi({c:'green',i:'check',label:'SQL',value:c?int(c.sql):'—',delta:c?delta(c.sql,c.prev.sql,true):'',foot:c?pct(div(c.sql,c.n),0)+' de los leads'+(x&&c.sql?' · '+(c.sql===1?'costó ':'')+clp(x.cpsql)+(c.sql===1?'':' c/u'):''):'',help:'Leads del periodo en estado «Calificado (SQL)».'}),
+    kpi({c:'violet',i:'clock',label:'Primera gestión',value:c?dur(c.gestMed):'—',delta:c?'<span class="delta">mediana de '+int(c.gestN)+'</span>':'',foot:c?int(c.sinGest)+' sin gestionar'+(c.sinGest24?' · '+int(c.sinGest24)+' de más de 24 h':''):'',help:'Desde que el lead entra hasta que su estado deja «Nuevo».'})].join('');
+  const bh=block(M,'crm','HubSpot');
+  $('#funnel').innerHTML=bh||funnel([...(m?[{label:'Leads según Meta',n:m.leads,color:'var(--indigo)'}]:[]),{label:'Llegaron a HubSpot',sub:c.arch?'incluye '+plural(c.arch,'archivado','archivados'):'',n:c.n+(c.arch||0),color:'color-mix(in srgb,var(--indigo) 70%,var(--teal))'},{label:'Gestionados',sub:'estado distinto de «Nuevo»',n:c.gest,color:'var(--violet)'},{label:'Contactados',n:c.cont,color:'var(--teal)'},{label:'SQL',n:c.sql,color:'var(--ok)'}])+quedan(M);
+  if(bh)$('#flow').innerHTML=bh;else sankey($('#flow'),c.flow);
+  const bm=block(M,'meta','Meta Ads');
+  if(bm)$('#daily').innerHTML=bm;else combo($('#daily'),m.days.map(d=>({...d,mql:c?((c.dailyHs[d.d]||{}).mql||0):null})),{bar:'spend',barLabel:'Inversión',barColor:'var(--gold)',barFmt:clpC,lines:[{key:'leads',label:'Leads',color:'var(--indigo)'},...(c?[{key:'mql',label:'MQL',color:'var(--teal)'}]:[])]});
+  // ritmo
+  if(!m){$('#pace').innerHTML=bm;$('#pace-pill').className='pill';$('#pace-pill').textContent=''}else{const{dim,day,sp,ideal,proj,st}=paceInfo(M),mx=Math.max(PRESUPUESTO_MENSUAL,proj,sp)*1.06;
+    $('#pace-pill').className='pill '+st[1];$('#pace-pill').innerHTML='<i></i>'+st[0];$('#pace-sub').textContent='Día '+day+' de '+dim+' del mes, contra '+clp(PRESUPUESTO_MENSUAL)+' de pauta mensual.';
+    $('#pace').innerHTML='<div class="pace-bar" role="img" aria-label="Gastado '+clp(sp)+' de '+clp(PRESUPUESTO_MENSUAL)+'"><span class="pace-proj" style="width:'+(Math.min(proj,mx)/mx*100).toFixed(1)+'%"></span><span class="pace-fill" style="width:'+(sp/mx*100).toFixed(1)+'%"></span><span class="pace-mark'+(PRESUPUESTO_MENSUAL/mx>.8?' fin':'')+'" style="left:'+(PRESUPUESTO_MENSUAL/mx*100).toFixed(1)+'%"><span>Presupuesto</span></span></div>'+
+      '<div class="stats" style="margin-top:6px"><div class="stat"><b>'+clp(sp)+'</b><span>Gastado este mes</span></div><div class="stat"><b>'+clp(ideal)+'</b><span>Lo esperado a hoy</span></div><div class="stat"><b>'+clp(proj)+'</b><span>Proyección a fin de mes</span></div><div class="stat"><b>'+clp(Math.max(0,PRESUPUESTO_MENSUAL-sp))+'</b><span>Disponible</span></div></div>'}
+  renderRoi(M,$('#roi'))}
+function renderRoi(M,el){const m=M.meta,D=M.deals;if(!m&&!D){el.innerHTML=block(M,'meta','Meta Ads');return}
+  const inv=m?m.spend:0,ufv=M.uf&&M.uf.valor,cob=D?D.cobUF:0,roi=(D&&ufv&&inv)?(cob*ufv-inv)/inv:null;
+  const lo=ufv&&inv?inv/(COMISION_UF[1]*ufv):null,hi=ufv&&inv?inv/(COMISION_UF[0]*ufv):null;
+  el.innerHTML='<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span class="big" style="color:'+(roi==null||!(D&&D.wonR)?'var(--fg)':roi>=0?'var(--ok)':'var(--bad)')+'">'+(roi!=null&&D.wonR?pct(roi,0):(D&&D.wonR?ufF(D.wonUF):'—'))+'</span><span class="note">'+(D&&D.wonR?(roi!=null?'ROI del periodo: comisiones cobradas en pesos menos la pauta, sobre la pauta.':'Comisión de las escrituras del periodo.'):'Sin escrituras en el periodo todavía.')+'</span></div>'+
+    '<div class="stats"><div class="stat"><b>'+clp(inv)+'</b><span>Invertido en pauta</span></div><div class="stat"><b>'+(D?int(D.wonR):'—')+'</b><span>Escrituras del periodo</span></div><div class="stat"><b>'+(D?ufR(D.juego):'—')+'</b><span>Comisión en juego (negocios abiertos)</span></div><div class="stat"><b>'+(lo==null?'—':hi<1?'Menos de 1':dec(lo,1)+' a '+dec(hi,1))+'</b><span>Escrituras que cubren la pauta</span></div></div>'}
+
+function renderMeta(M){const m=M.meta;
+  $('#kpis-meta').innerHTML=[
+    kpi({c:'indigo',i:'eye',label:'Impresiones',value:m?int(m.impr):'—',delta:m?delta(m.impr,m.prev.impr,true):'',spark:m?spark(m.days.map(d=>d.impr),'var(--indigo)'):'',foot:m?'CPM '+clp(m.cpm):''}),
+    kpi({c:'teal',i:'click',label:'Clics',value:m?int(m.clicks):'—',delta:m?delta(m.clicks,m.prev.clicks,true):'',foot:m?'CTR '+pct(m.ctr,2):''}),
+    kpi({c:'coral',i:'tag',label:'Costo por lead',value:m?clp(m.cpl):'—',delta:m?delta(m.cpl,m.pcpl,false):'',foot:m?plural(m.leadsN,'lead','leads')+(m.cplHs?' (Meta aún informa '+int(m.leads)+')':''):''}),
+    kpi({c:'gold',i:'star',label:'Costo por MQL',value:M.cross?clp(M.cross.cpmql):'—',delta:M.cross?delta(M.cross.cpmql,M.cross.pcpmql,false):'',foot:M.cross&&M.cross.cpsql?'Costo por SQL '+clp(M.cross.cpsql):''})].join('');
+  const b=block(M,'meta','Meta Ads');if(b){['#daily-cpl','#tbl-camp','#tbl-adsets'].forEach(s=>$(s).innerHTML=b);return}
+  combo($('#daily-cpl'),m.days.map(d=>({...d,cpl:d.leads?d.spend/d.leads:null})),{bar:'leads',barLabel:'Leads',barColor:'var(--indigo)',barFmt:int,lines:[{key:'cpl',label:'Costo por lead',color:'var(--coral)',fmt:clp}],rightFmt:clpC,vacio:'Sin leads de Meta en el periodo'});
+  const mx=Math.max(...m.camps.map(c=>c.spend),1);
+  table($('#tbl-camp'),'camp',[{k:'name',label:'Campaña',f:r=>'<span class="nm">'+esc(r.name)+'</span><span class="sm">'+(r.budget?clp(r.budget)+' al día':'')+'</span>'},{k:'status',label:'Estado',f:r=>pill(r.status)},
+    {k:'spend',label:'Inversión',n:1,f:r=>'<div class="cbar"><span style="width:'+Math.round(r.spend/mx*60)+'px"></span>'+clp(r.spend)+'</div>'},{k:'leads',label:'Leads',n:1,f:r=>int(r.leads)},{k:'cpl',label:'CPL',n:1,sv:r=>div(r.spend,Math.max(r.leads,r.hs?r.hs.n:0)),f:r=>clp(div(r.spend,Math.max(r.leads,r.hs?r.hs.n:0)))},
+    {k:'mql',label:'MQL',n:1,sv:r=>r.hs?r.hs.mql:null,f:r=>r.hs?int(r.hs.mql):'<span class="note">—</span>'},{k:'cpmql',label:'Costo por MQL',n:1,sv:r=>r.hs?div(r.spend,r.hs.mql):null,f:r=>r.hs?clp(div(r.spend,r.hs.mql)):'<span class="note">—</span>'},
+    {k:'sql',label:'SQL',n:1,sv:r=>r.hs?r.hs.sql:null,f:r=>r.hs?int(r.hs.sql):'<span class="note">—</span>'},{k:'ctr',label:'CTR',n:1,sv:r=>div(r.clicks,r.impr),f:r=>pct(div(r.clicks,r.impr),2)}],m.camps,{def:'spend',empty:'Ninguna campaña con gasto en el periodo ni activa ahora.'});
+  table($('#tbl-adsets'),'sets',[{k:'name',label:'Conjunto',f:r=>'<span class="nm">'+esc(r.name)+'</span><span class="sm">'+esc(r.camp)+(r.budget?' · '+clp(r.budget)+' al día':'')+'</span>'},{k:'status',label:'Estado',f:r=>pill(r.status)},
+    {k:'spend',label:'Inversión',n:1,f:r=>clp(r.spend)},{k:'leads',label:'Leads',n:1,f:r=>int(r.leads)},{k:'cpl',label:'CPL',n:1,sv:r=>div(r.spend,r.leads),f:r=>clp(div(r.spend,r.leads))},{k:'ctr',label:'CTR',n:1,sv:r=>div(r.clicks,r.impr),f:r=>pct(div(r.clicks,r.impr),2)}],m.sets,{def:'spend',empty:'Ningún conjunto con gasto en el periodo ni activo ahora.'});
+  if(m.cut150)$('#tbl-adsets').insertAdjacentHTML('beforeend','<p class="note">Campañas y conjuntos guardan los últimos 150 días; el periodo elegido empieza antes.</p>')}
+
+function renderCrm(M){const c=M.crm;
+  $('#kpis-crm').innerHTML=[
+    kpi({c:'indigo',i:'users',label:'Leads de Meta en HubSpot',value:c?int(c.n):'—',delta:c?delta(c.n,c.prev.n,true):'',foot:c?int(c.otros)+' contactos de otras fuentes':''}),
+    kpi({c:'gold',i:'star',label:'MQL',value:c?int(c.mql):'—',delta:c?delta(c.mql,c.prev.mql,true):'',foot:c?pct(div(c.mql,c.n),0)+' de los leads'+(M.cross&&c.mql?' · '+(c.mql===1?'costó ':'')+clp(M.cross.cpmql)+(c.mql===1?'':' c/u'):''):'',help:'Renta líquida desde $1,8 MM.'}),
+    kpi({c:'violet',i:'bolt',label:'Gestionados',value:c?pct(div(c.gest,c.n),0):'—',foot:c?int(c.gest)+' de '+int(c.n):''}),
+    kpi({c:'teal',i:'check',label:'Contactados',value:c?pct(div(c.cont,c.n),0):'—',foot:c?int(c.cont)+' leads':'',help:'Estado «Contactado» o «Calificado (SQL)».'}),
+    kpi({c:'green',i:'check',label:'SQL',value:c?int(c.sql):'—',delta:c?delta(c.sql,c.prev.sql,true):'',foot:c?pct(div(c.sql,c.n),1)+' de los leads · '+pct(div(c.sql,c.mql),0)+' de los MQL'+(M.cross&&c.sql?' · '+(c.sql===1?'costó ':'')+clp(M.cross.cpsql)+(c.sql===1?'':' c/u'):''):''}),
+    kpi({c:'gold',i:'clock',label:'Asignación',value:c?dur(c.asigMed):'—',delta:c?'<span class="delta">mediana de '+int(c.asigN)+'</span>':'',foot:c?int(c.sinProp)+' sin propietario':''})].join('');
+  const b=block(M,'crm','HubSpot');const ids=['#h-gest','#h-asig','#h-estados','#h-renta','#h-pie','#h-obj','#tbl-forms','#h-motivos','#h-calidad'];if(b){ids.forEach(s=>$(s).innerHTML=b);return}
+  $('#tg-gest').textContent='Mediana '+dur(c.gestMed);$('#tg-asig').textContent='Mediana '+dur(c.asigMed);
+  const gc=['var(--ok)','var(--ok)','var(--teal)','var(--warn)','var(--bad)'];
+  $('#h-gest').innerHTML=hbars(c.gestHist.map((x,i)=>({...x,color:x.rest?'var(--line-2)':gc[i]})),{total:c.n});
+  const ac=['var(--ok)','var(--teal)','var(--warn)','var(--bad)'];
+  $('#h-asig').innerHTML=hbars(c.asigHist.map((x,i)=>({...x,color:x.rest?'var(--bad)':ac[i]})),{total:c.n});
+  const ec={NEW:'var(--warn)',ATTEMPTED_TO_CONTACT:'var(--violet)',CONNECTED:'var(--teal)',OPEN_DEAL:'var(--ok)','No califica':'var(--bad)','':'var(--line-2)'};
+  $('#h-estados').innerHTML=hbars(c.estados.map(x=>({...x,always:true,color:ec[x.k]||'var(--off)'})),{total:c.n});
+  $('#h-renta').innerHTML=hbars(c.renta,{total:c.n,color:'var(--off)'});
+  $('#h-pie').innerHTML=hbars(c.pie,{total:c.n,color:'var(--teal)'});
+  $('#h-obj').innerHTML=hbars(c.obj,{total:c.n,color:'var(--indigo)'});
+  table($('#tbl-forms'),'forms',[{k:'name',label:'Formulario',f:r=>'<span class="nm">'+esc(r.name)+'</span>'},{k:'n',label:'Leads',n:1,f:r=>int(r.n)},{k:'mql',label:'MQL',n:1,f:r=>int(r.mql)+' <span class="note">'+pct(div(r.mql,r.n),0)+'</span>'},
+    {k:'gest',label:'Gestionados',n:1,f:r=>pct(div(r.gest,r.n),0)},{k:'cont',label:'Contactados',n:1,f:r=>int(r.cont)},{k:'sql',label:'SQL',n:1,f:r=>int(r.sql)+' <span class="note">'+pct(div(r.sql,r.n),0)+'</span>'},{k:'nc',label:'No califica',n:1,f:r=>int(r.nc)}],c.forms,{def:'n',empty:'Ningún lead de Meta en el periodo.'});
+  $('#h-motivos').innerHTML=hbars(c.motivos,{color:'var(--bad)'});
+  $('#h-calidad').innerHTML='<div class="checks">'+[['Sin estado',c.sinEstado,'Leads que nadie ha tocado todavía.'],['«No califica» sin motivo',c.ncSinMotivo,'Sin motivo no se sabe qué ajustar en el anuncio o el formulario.'],['Con llamada o nota registrada',c.conAct,'Los tiempos de contacto de HubSpot solo se llenan si se registra la actividad.',true]]
+    .map(([l,n,d,info])=>'<div class="check" data-s="'+(info?'info':n?'warn':'ok')+'"><span class="ic">'+(info?'i':n?'!':'✓')+'</span><div><h4>'+l+'</h4><p>'+d+'</p></div><span class="when num">'+int(n)+' de '+int(c.n)+'</span></div>').join('')+'</div>'}
+
+function renderDeals(M){const D=M.deals,ufv=M.uf&&M.uf.valor,inv=M.meta?M.meta.spend:null;
+  const est=x=>x.sin?(x.sin===x.n?'Estimada: ':'En parte estimada: '):'';
+  const cobCLP=D&&ufv?D.cobUF*ufv:null,roi=D&&D.wonR&&cobCLP!=null&&inv?(cobCLP-inv)/inv:null;
+  $('#kpis-deals').innerHTML=[
+    kpi({c:'indigo',i:'home',label:'Negocios abiertos',value:D?int(D.open):'—',foot:D?int(D.createdR)+' creados en el periodo · '+int(D.lost)+' perdidos en total':''}),
+    kpi({c:'gold',i:'money',label:'Comisión en juego',value:D?ufR(D.juego):'—',foot:D&&D.open?est(D.juego)+clpR(D.juego,ufv):'Sin negocios abiertos',help:'Lo que cobraría Vertical si se escrituran los negocios abiertos. Si a un negocio le falta el valor o la comisión en HubSpot, se cuenta entre 60 y 160 UF, lo que dio el cliente por venta.'}),
+    kpi({c:'green',i:'check',label:'Comisión ganada',value:D?(D.wonR?ufR(D.won):'0 UF'):'—',foot:D?int(D.wonR)+(D.wonR===1?' escritura':' escrituras')+' en el periodo · '+ufF(D.cobUF)+' cobrada':'',help:'Comisión de los negocios que llegaron a «Escritura» en el periodo.'}),
+    kpi({c:'teal',i:'chart',label:'Retorno de la pauta',value:roi!=null?pct(roi,0):'—',foot:inv?(roi!=null?'Comisión cobrada '+clpC(cobCLP)+' frente a '+clpC(inv)+' de pauta':'Sin comisión cobrada aún · pauta '+clpC(inv)):M.meta?'Sin gasto en Meta en el periodo':'Meta sin datos ahora mismo',help:'(Comisión cobrada en pesos − pauta) ÷ pauta. Solo la pauta de Meta.'})].join('');
+  const b=block(M,'deals','HubSpot');if(b){['#pipe','#tbl-deals','#h-perdida','#h-inmob','#breakeven','#ticket'].forEach(s=>$(s).innerHTML=b);return}
+  const ar='<span class="arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l5 5-5 5"/></svg></span>';
+  const stv=s=>!s.n?['','']:s.sin===s.n?['Sin valor ni comisión',s.won?'Ganado':'Falta en HubSpot']:[ufF(s.com)+' de comisión',s.sin?int(s.sin)+' sin datos en HubSpot':(s.won?'Ganado':'')];
+  $('#pipe').innerHTML='<div class="pipe">'+D.stages.map((s,i)=>{const [v,p]=stv(s);return(i?ar:'')+'<div class="stage'+(s.won?' won':'')+(s.n?'':' zero')+'"><span class="l">'+esc(s.label)+'</span><span class="n num">'+int(s.n)+'</span><span class="v">'+(v||'&nbsp;')+'</span><span class="p">'+(p||'&nbsp;')+'</span></div>'}).join('')+'</div><div class="note">Perdidos: <b>'+int(D.lost)+'</b></div>';
+  const per='<div class="stats"><div class="stat"><b>'+(ufv?clp(COMISION_UF[0]*ufv):'—')+'</b><span>Comisión por venta, mínimo (60 UF)</span></div><div class="stat"><b>'+(ufv?clp(COMISION_UF[1]*ufv):'—')+'</b><span>Comisión por venta, máximo (160 UF)</span></div></div>';
+  $('#breakeven').innerHTML=(!ufv?'<div class="empty">Falta la UF del día.</div>':!inv?'<div class="note" style="font-size:13px">'+(M.meta?'Sin gasto en Meta en este periodo.':'Meta sin datos ahora mismo: no se puede calcular.')+'</div>':'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="big">'+(inv/(COMISION_UF[0]*ufv)<1?'Menos de 1':dec(inv/(COMISION_UF[1]*ufv),1)+' a '+dec(inv/(COMISION_UF[0]*ufv),1))+'</span><span class="note" style="font-size:13px">ventas para pagar '+clp(inv)+' de pauta</span></div>')+per;
+  const total=D.rows.filter(d=>!d.lost).length,falta=total-D.rows.filter(d=>!d.lost&&d.uf&&d.pc).length;
+  $('#ticket').innerHTML=(D.nVal?'<div class="stats"><div class="stat"><b>'+ufF(D.ticket)+'</b><span>Valor medio de la propiedad</span></div><div class="stat"><b>'+ufF(D.comMedia)+'</b><span>Comisión media por venta</span></div>'+(ufv?'<div class="stat"><b>'+clpC(D.comMedia*ufv)+'</b><span>En pesos, con la UF de hoy</span></div>':'')+'</div>':'')
+    +(falta?'<div class="pend">'+(total===1?'El negocio abierto no tiene':int(falta)+' de '+int(total)+' negocios no tienen')+' esos dos campos en HubSpot, así que su comisión se estima entre 60 y 160 UF. Cuando se completen, aquí sale la comisión real.</div>':(!D.nVal?'<div class="empty">Todavía no hay negocios.</div>':''));
+  table($('#tbl-deals'),'deals',[{k:'order',label:'Etapa',sv:r=>r.order,f:r=>'<span class="pill '+(r.won?'ok':r.lost?'bad':'gold')+'"><i></i>'+esc(r.stageLabel)+'</span>'},{k:'inmobL',label:'Inmobiliaria',f:r=>esc(r.inmobL||'—')},{k:'uf',label:'Valor propiedad',n:1,f:r=>ufF(r.uf)},{k:'pc',label:'Comisión %',n:1,f:r=>isN(r.pc)?dec(r.pc,2)+' %':'—'},
+    {k:'com',label:'Comisión',n:1,f:r=>isN(r.com)?ufF(r.com)+(ufv?'<span class="sm">'+clpC(r.com*ufv)+'</span>':''):'—'},{k:'cobrada',label:'Cobrada',sv:r=>r.cobrada?1:0,f:r=>r.cobrada?'<span class="pill ok"><i></i>Sí</span>':'No'},{k:'cobro',label:'Cobro previsto',f:r=>r.cobro?fDay(r.cobro)+' '+r.cobro.slice(0,4):'—'},
+    {k:'creado',label:'Días abierto',n:1,f:r=>r.creado?int(Math.max(0,Math.round(((((r.won||r.lost)&&r.cerrado)?r.cerrado:Date.now())-r.creado)/864e5))):'—'},{k:'motivoL',label:'Motivo de pérdida',f:r=>esc(r.motivoL||'')}],D.rows,{def:'order',dir:1,empty:'Todavía no hay negocios en el pipeline.'});
+  $('#h-perdida').innerHTML=hbars(D.perdida,{color:'var(--bad)'});$('#h-inmob').innerHTML=hbars(D.inmob,{color:'var(--indigo)'})}
+
+function renderWeb(M){const g=M.ga4;
+  $('#kpis-web').innerHTML=[
+    kpi({c:'teal',i:'globe',label:'Sesiones',value:g?int(g.sessions):'—',delta:g?delta(g.sessions,g.prev.sessions,true):'',spark:g?spark(g.days.map(d=>d.sessions),'var(--teal)'):'',foot:g?pct(div(g.engaged,g.sessions),0)+' con interacción':''}),
+    kpi({c:'violet',i:'users',label:'Usuarios',value:g?int(g.users):'—',delta:g?delta(g.users,g.prev.users,true):'',foot:g?int(g.newUsers)+' nuevos':''}),
+    kpi({c:'indigo',i:'eye',label:'Páginas vistas',value:g?int(g.views):'—',foot:g&&g.sessions?dec(g.views/g.sessions,1)+' por sesión':''}),
+    kpi({c:'gold',i:'star',label:'Eventos clave',value:g?int(g.key):'—',foot:'Conversiones marcadas en Analytics',help:'Eventos marcados como clave en Google Analytics.'}),
+    kpi({c:'green',i:'bolt',label:'En la web ahora',value:g&&isN(g.rt)?int(g.rt):'—',foot:'Usuarios activos en los últimos 30 min'})].join('');
+  const b=block(M,'ga4','Google Analytics');if(b){['#web-daily','#web-canales','#web-eventos','#web-paginas'].forEach(s=>$(s).innerHTML=b);return}
+  combo($('#web-daily'),g.days,{bar:'sessions',barLabel:'Sesiones',barColor:'var(--teal)',barFmt:int,lines:[{key:'users',label:'Usuarios',color:'var(--violet)'}]});
+  $('#web-canales').innerHTML=hbars(g.canales,{color:'var(--teal)'})+(g.cut?'<p class="note">Canales y eventos guardan los últimos 120 días.</p>':'');
+  $('#web-eventos').innerHTML=hbars(g.eventos.slice(0,12),{color:'var(--violet)',total:0});
+  table($('#web-paginas'),'pages',[{k:0,label:'Página',sv:r=>r[0],f:r=>'<span class="nm">'+esc(r[0])+'</span>'},{k:1,label:'Vistas',n:1,sv:r=>r[1],f:r=>int(r[1])},{k:2,label:'Usuarios',n:1,sv:r=>r[2],f:r=>int(r[2])}],g.paginas,{def:1,empty:'Sin páginas vistas en los últimos 28 días.'})}
+
+function renderSalud(M){const ic={ok:'✓',warn:'!',bad:'✕',off:'–',info:'i'},cls={ok:'ok',warn:'warn',bad:'bad',off:'off',info:'info'};
+  $('#checks').innerHTML=M.health.map(h=>'<div class="check" data-s="'+h.s+'"><span class="ic" aria-hidden="true">'+ic[h.s]+'</span><div><h4>'+esc(h.label)+'<span class="pill '+cls[h.s]+'"><i></i>'+esc(h.st)+'</span></h4><p>'+esc(h.d)+'</p></div><span class="when">'+esc(h.when||'')+'</span></div>').join('');
+  const P=M.pixel;if(!P){$('#capi-events').innerHTML=block(M,'meta','Meta Ads')||'<div class="empty">Sin datos del píxel.</div>';$('#emq').innerHTML=$('#capi-events').innerHTML;return}
+  const ev=P.events||[];const rows=CAPI_EVENTOS.map(n=>{const e=ev.find(x=>x.nombre===n);return{label:n,n:e?e.n:0,always:true,color:n==='QUALIFIED'?'var(--ok)':n==='MQL'?'var(--gold)':'var(--indigo)'}});
+  $('#capi-events').innerHTML=rows.some(r=>r.n)?hbars(rows,{total:0})+'<p class="note">QUALIFIED es la etapa con la que Meta optimiza. MQL cuenta cuando se añade al embudo del CRM en el Administrador de eventos.'+(P.crmLast?' Último evento del CRM: '+fWhen(P.crmLast)+'.':'')+'</p>':'<div class="empty">Meta no recibió eventos del CRM en estos días.</div>';
+  const Q=P.calidad||[];$('#emq').innerHTML=Q.length?Q.map(q=>'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="big">'+dec(q.nota,1)+'</span><span class="note">de 10 · evento '+esc(q.evento)+'</span></div><div class="keys">'+(q.claves||[]).map(k=>'<span class="key">'+esc({email:'Correo',phone:'Teléfono',country:'País',fn:'Nombre',ln:'Apellido',lead_id:'ID de lead',external_id:'ID externo'}[k.id]||k.id)+'<b>'+(k.pct!=null?k.pct+' %':'—')+'</b></span>').join('')+'</div>').join(''):'<div class="empty">Meta aún no entrega la puntuación de coincidencia.</div>'}
+
+const ADM_FUENTES={hubspot:'HubSpot',meta:'Meta Ads',ga4:'Google Analytics',uf:'Valor de la UF'};
+const ADM_LINKS=[
+  ['Ejecuciones en GitHub','Cada actualización y su registro','https://github.com/manuelpenaizurieta/vertical-hubspot-asignacion/actions'],
+  ['Contraseñas y credenciales','Secretos de GitHub','https://github.com/manuelpenaizurieta/vertical-hubspot-asignacion/settings/secrets/actions'],
+  ['Disparador cada 20 minutos','cron-job.org','https://console.cron-job.org/jobs'],
+  ['Usuarios del sistema de Meta','Business Manager de Vertical','https://business.facebook.com/settings/system-users?business_id=380668641725447'],
+  ['Administrador de eventos','Píxel y eventos del CRM','https://business.facebook.com/events_manager2'],
+  ['Google Analytics','Propiedad de la web','https://analytics.google.com/analytics/web/#/p446831398/reports/intelligenthome'],
+  ['Cuenta técnica de Analytics','Google Cloud','https://console.cloud.google.com/iam-admin/serviceaccounts'],
+  ['HubSpot de Vertical','Contactos y negocios','https://app.hubspot.com/contacts/46495855'],
+  ['Repositorio del panel','Página y datos cifrados','https://github.com/manuelpenaizurieta/vertical-panel']];
+function renderAdmin(M){if(!S.user||S.user.rol!=='admin')return;
+  const L=S.user.usuarios||[],nm={manu:'Manu',matias:'Matías'};
+  $('#adm-users').innerHTML=L.length?L.map(x=>{const s=!x.activo?'off':x.corta?'warn':'ok';
+    const d=!x.activo?'Sin contraseña: no puede entrar. Se activa al crear su secreto en GitHub.':x.corta?'Puede entrar. Su contraseña es corta: mejor 12 caracteres o más.':'Puede entrar'+(x.u===S.user.u?' (eres tú).':'.');
+    return'<div class="check" data-s="'+s+'"><span class="ic" aria-hidden="true">'+(s==='ok'?'✓':s==='warn'?'!':'–')+'</span><div><h4>'+esc(nm[x.u]||x.u)+' <span class="note">usuario «'+esc(x.u)+'»</span><span class="pill '+(x.rol==='admin'?'gold':'info')+'"><i></i>'+(x.rol==='admin'?'Administrador':'Lector')+'</span></h4><p>'+d+'</p></div><span class="when">'+(x.activo?'Activo':'Inactivo')+'</span></div>'}).join(''):'<div class="empty">Sin lista de usuarios.</div>';
+  const E=M.err||{},keys=Object.keys(ADM_FUENTES);
+  $('#adm-diag').innerHTML=keys.map(k=>{const e=E[k];return'<div class="check" data-s="'+(e?'bad':'ok')+'"><span class="ic" aria-hidden="true">'+(e?'✕':'✓')+'</span><div><h4>'+ADM_FUENTES[k]+'</h4><p>'+(e?'<code>'+esc(e)+'</code>':'Sin errores.')+'</p></div><span class="when"></span></div>'}).join('')
+    +'<p class="note" style="margin-top:10px">Datos generados el '+fWhen(M.gen)+'.'+(M.capiDesde?' Envío de etapas a Meta desde el '+esc(M.capiDesde)+'.':'')+'</p>';
+  $('#adm-links').innerHTML=ADM_LINKS.map(l=>'<a href="'+l[2]+'" target="_blank" rel="noopener noreferrer">'+esc(l[0])+'<small>'+esc(l[1])+'</small></a>').join('')}
+
+/* ============ Ciclo ============ */
+function recompute(){if(!S.D)return;S.range=rangeFor(S.preset);S.M=compute();renderAll()}
+function setPreset(p){S.preset=p;ls.set('vp_preset',p);$$('#presets button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===p)));$('#custom').hidden=p!=='custom';
+  if(p==='custom'){const r=rangeFor('28d');$('#f-desde').value=S.custom.desde||r.desde;$('#f-hasta').value=S.custom.hasta||r.hasta;S.custom={desde:$('#f-desde').value,hasta:$('#f-hasta').value}}recompute()}
+function showTab(id,push=true){$$('.tab').forEach(t=>t.setAttribute('aria-selected',String(t.getAttribute('aria-controls')===id)));$$('.panel').forEach(p=>p.hidden=p.id!==id);if(push)try{history.replaceState(null,'','#'+id)}catch(e){}renderAll()}
+$$('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+const onDate=()=>{const a=$('#f-desde'),b=$('#f-hasta');if(a.value&&b.value&&a.validity.valid&&b.validity.valid){S.custom={desde:a.value,hasta:b.value};recompute()}};
+$('#f-desde').addEventListener('change',onDate);$('#f-hasta').addEventListener('change',onDate);
+$$('.tab').forEach(t=>t.addEventListener('click',()=>showTab(t.getAttribute('aria-controls'))));
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g)showTab(g.dataset.go)});
+$('#btn-reload').addEventListener('click',()=>load());
+document.addEventListener('click',e=>{if(e.target.closest('#ver-todo')){S.verTodo=!S.verTodo;if(S.M)renderStatus(S.M)}});
+$('#btn-theme').addEventListener('click',()=>{const r=document.documentElement,cur=r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),nx=cur==='dark'?'light':'dark';r.dataset.theme=nx;ls.set('vp_theme',nx);renderAll()});
+(()=>{const t=ls.get('vp_theme');if(t)document.documentElement.dataset.theme=t})();
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(renderAll,180)});
+$$('#presets button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===S.preset)));$('#custom').hidden=S.preset!=='custom';
+const h=(location.hash||'').slice(1);if(h&&document.getElementById(h)&&document.getElementById(h).classList.contains('panel'))showTab(h,false);
+setInterval(()=>{if(document.visibilityState==='visible'&&S.sess)load(true)},5*6e4);
+setInterval(()=>{if(S.M)renderHero(S.M)},6e4);
+load();
+})();
+</script>
+</body>
+</html>
